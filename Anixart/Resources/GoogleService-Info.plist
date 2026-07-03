@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  ⚠️ ЗАМЕНИ ЭТОТ ФАЙЛ на настоящий GoogleService-Info.plist из Firebase Console.
+  Проект: anime-ad-eb8b3
+  Получить: https://console.firebase.google.com/project/anime-ad-eb8b3/settings/general/ios:com.swiftsoft.anixartd
+
+  Без этого файла Firebase Auth и Push Notifications не будут работать,
+  но проект скомпилируется (с флагом CODE_SIGNING_ALLOWED=NO).
+-->
+<plist version="1.0">
+<dict>
+	<key>API_KEY</key>
+	<string>AIzaSyBFPckWOsp0MEqb_1gwszvM1ILdUixM-uw</string>
+	<key>GCM_SENDER_ID</key>
+	<string>983926366374</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.swiftsoft.anixartd</string>
+	<key>PROJECT_ID</key>
+	<string>anime-ad-eb8b3</string>
+	<key>STORAGE_BUCKET</key>
+	<string>anime-ad-eb8b3.appspot.com</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:983926366374:ios:86c070d43af9c4cd0b5467</string>
+</dict>
+</plist>

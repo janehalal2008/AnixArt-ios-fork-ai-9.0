@@ -1,0 +1,147 @@
+name: Build iOS
+
+on:
+  push:
+    branches: ["main", "develop", "feature/*"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+concurrency:
+  group: ios-build-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  XCODE_VERSION: "16.2"
+  DEVELOPER_DIR: /Applications/Xcode_16.2.app/Contents/Developer
+
+jobs:
+  build:
+    name: Build Anixart iOS
+    runs-on: macos-15
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: |
+          ls /Applications | grep Xcode
+          sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+          xcodebuild -version
+
+      - name: Install XcodeGen
+        run: |
+          if which xcodegen >/dev/null 2>&1; then
+            echo "xcodegen already installed"
+          else
+            brew install xcodegen
+          fi
+          xcodegen --version
+
+      - name: Generate Xcode Project
+        run: xcodegen generate
+
+      - name: Resolve SPM Dependencies
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -project Anixart.xcodeproj \
+            -scheme Anixart \
+            -clonedSourcePackagesDirPath ~/Library/Caches/com.apple.dt.Xcode/SourcePackages
+
+      - name: Install xcbeautify
+        run: |
+          if ! which xcbeautify >/dev/null 2>&1; then
+            brew install xcbeautify
+          fi
+
+      - name: Build App
+        run: |
+          xcodebuild build \
+            -project Anixart.xcodeproj \
+            -scheme Anixart \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination "platform=iOS Simulator,name=iPhone 16 Pro Max,OS=latest" \
+            CODE_SIGNING_ALLOWED=NO \
+            -clonedSourcePackagesDirPath ~/Library/Caches/com.apple.dt.Xcode/SourcePackages \
+            | xcbeautify --report junit --report-path build/report.xml
+
+      - name: Upload Build Artifacts
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Anixart-Build
+          path: |
+            build/
+            *.log
+          compression-level: 9
+          retention-days: 7
+
+  analyze:
+    name: Static Analysis
+    runs-on: macos-15
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+          xcodebuild -version
+
+      - name: Install SwiftLint
+        run: brew install swiftlint
+
+      - name: Lint Swift Code
+        run: swiftlint --strict 2>&1 || true
+
+  release:
+    name: Create Release IPA
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build]
+    runs-on: macos-15
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+          xcodebuild -version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode Project
+        run: xcodegen generate
+
+      - name: Archive App
+        run: |
+          xcodebuild archive \
+            -project Anixart.xcodeproj \
+            -scheme Anixart \
+            -configuration Release \
+            -archivePath build/Anixart.xcarchive \
+            CODE_SIGNING_ALLOWED=NO \
+            -clonedSourcePackagesDirPath ~/Library/Caches/com.apple.dt.Xcode/SourcePackages
+
+      - name: Export IPA
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath build/Anixart.xcarchive \
+            -exportPath build/Anixart.ipa \
+            -exportOptionsPlist ExportOptions.plist \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Anixart-IPA
+          path: build/Anixart.ipa/
+          retention-days: 90
