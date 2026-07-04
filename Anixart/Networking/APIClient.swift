@@ -33,13 +33,26 @@ actor APIClient {
     var token: String? { _token }
     var altConnectionMode: Bool { _altConnectionMode }
 
+    private let userAgent = "Anixart/9.0 (Linux; Android 14; Pixel 9 Pro) Mobile"
+
     private init() {
-        let config = URLSessionConfiguration.default
+        let config = URLSessionConfiguration.ephemeral
         config.timeoutIntervalForRequest = 30
         config.timeoutIntervalForResource = 60
+        config.httpShouldHandleCookies = true
+        config.httpCookieAcceptPolicy = .always
+        config.httpCookieStorage = HTTPCookieStorage.shared
         session = URLSession(configuration: config)
         decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .useDefaultKeys
+    }
+
+    func initializeCookies() async {
+        guard let url = URL(string: _baseURL) else { return }
+        var req = URLRequest(url: url)
+        req.setValue(userAgent, forHTTPHeaderField: "User-Agent")
+        req.setValue("application/json", forHTTPHeaderField: "Accept")
+        _ = try? await session.data(for: req)
     }
 
     func configure(
@@ -82,7 +95,7 @@ actor APIClient {
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Anixart/9.0 (iOS; iPhone; iOS 17.0)", forHTTPHeaderField: "User-Agent")
+        request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
 
         if let body {
             request.httpBody = try JSONEncoder().encode(body)
@@ -141,7 +154,7 @@ actor APIClient {
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Anixart/9.0 (iOS; iPhone; iOS 17.0)", forHTTPHeaderField: "User-Agent")
+        request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
 
         if let body {
             request.httpBody = try JSONEncoder().encode(body)
