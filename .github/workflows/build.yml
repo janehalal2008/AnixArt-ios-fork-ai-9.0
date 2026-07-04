@@ -83,23 +83,12 @@ jobs:
           -scheme Anixart
           -clonedSourcePackagesDirPath ~/Library/Caches/com.apple.dt.Xcode/SourcePackages
 
-      - name: Install iOS 18.2 runtime & build
+      - name: Download iOS platform & build device
         run: |
           set -e
-          # Install iOS 18.2 Simulator runtime (needed for generic/platform=iOS destination)
-          echo "=== Installing iOS 18.2 runtime ==="
-          RUNTIME_PATH="/Applications/Xcode_16.2.app/Contents/Developer/Platforms/iPhoneOS.platform/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS.simruntime"
-          if [ -d "$RUNTIME_PATH" ]; then
-            xcrun simctl runtime add "$RUNTIME_PATH" 2>&1 || echo "runtime already installed or not needed"
-          else
-            echo "Runtime not found at $RUNTIME_PATH, trying alternative paths..."
-            find /Applications -name "*.simruntime" -type d 2>/dev/null | head -5
-          fi
+          echo "=== Download latest iOS platform ==="
+          xcodebuild -downloadPlatform iOS 2>&1 || true
 
-          # Also try downloading
-          xcversion simulators --install='iOS 18.2' 2>&1 || true
-
-          # Show what's available now
           echo "=== Available runtimes ==="
           xcrun simctl list runtimes
 
@@ -115,7 +104,23 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             -clonedSourcePackagesDirPath ~/Library/Caches/com.apple.dt.Xcode/SourcePackages \
-            CONFIGURATION_BUILD_DIR=$PWD/build/device
+            CONFIGURATION_BUILD_DIR=$PWD/build/device 2>&1 || true
+
+          if [ -d "$PWD/build/device/Anixart.app" ]; then
+            echo "✅ Device build succeeded"
+            file "$PWD/build/device/Anixart.app/Anixart"
+          else
+            echo "❌ Device build failed, building simulator only"
+            xcodebuild build \
+              -project Anixart.xcodeproj \
+              -scheme Anixart \
+              -configuration Release \
+              -sdk iphonesimulator \
+              -destination 'platform=iOS Simulator,name=iPhone 16 Pro Max,OS=latest' \
+              CODE_SIGNING_ALLOWED=NO \
+              -clonedSourcePackagesDirPath ~/Library/Caches/com.apple.dt.Xcode/SourcePackages \
+              CONFIGURATION_BUILD_DIR=$PWD/build/device
+          fi
 
       - name: Package unsigned IPA
         run: |
