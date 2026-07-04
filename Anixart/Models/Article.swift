@@ -27,7 +27,7 @@ struct Article: Codable, Identifiable, Hashable {
     }
 }
 
-struct ArticleCompact: Codable, Identifiable {
+struct ArticleCompact: Codable, Identifiable, Hashable {
     let id: Int
     let title: String?
     let image: String?
@@ -35,6 +35,14 @@ struct ArticleCompact: Codable, Identifiable {
     let channelName: String?
     let commentsCount: Int?
     let createdAt: String?
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+
+    static func == (lhs: ArticleCompact, rhs: ArticleCompact) -> Bool {
+        lhs.id == rhs.id
+    }
 }
 
 struct Channel: Codable, Identifiable, Hashable {

@@ -29,7 +29,7 @@ class AuthManager: ObservableObject {
             self.token = token
             self.currentProfile = profile
             self.isAuthenticated = true
-            api.setToken(token)
+            Task { await api.setToken(token) }
         }
         isDarkMode = defaults.bool(forKey: "dark_mode") != false
     }
@@ -148,7 +148,7 @@ class AuthManager: ObservableObject {
         token = nil
         currentProfile = nil
         isAuthenticated = false
-        api.setToken(nil)
+        Task { await api.setToken(nil) }
         defaults.removeObject(forKey: "auth_token")
         defaults.removeObject(forKey: "profile")
     }
@@ -157,7 +157,7 @@ class AuthManager: ObservableObject {
         self.token = token
         self.currentProfile = profile
         self.isAuthenticated = true
-        api.setToken(token)
+        Task { await api.setToken(token) }
         defaults.set(token, forKey: "auth_token")
         if let profile {
             if let data = try? JSONEncoder().encode(profile) {

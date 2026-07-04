@@ -33,11 +33,19 @@ struct Profile: Codable, Identifiable, Hashable {
     }
 }
 
-struct ProfileSlim: Codable, Identifiable {
+struct ProfileSlim: Codable, Identifiable, Hashable {
     let id: Int
     let login: String?
     let avatar: String?
     let role: Profile.ProfileRole?
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+
+    static func == (lhs: ProfileSlim, rhs: ProfileSlim) -> Bool {
+        lhs.id == rhs.id
+    }
 }
 
 struct ProfileToken: Codable {

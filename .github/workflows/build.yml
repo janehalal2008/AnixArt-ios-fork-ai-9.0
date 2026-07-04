@@ -83,14 +83,11 @@ jobs:
           -scheme Anixart
           -clonedSourcePackagesDirPath ~/Library/Caches/com.apple.dt.Xcode/SourcePackages
 
-      - name: Download iOS platform & build device
+      - name: Build device .app
         run: |
           set -e
-          echo "=== Download latest iOS platform ==="
+          echo "=== Download iOS platform ==="
           xcodebuild -downloadPlatform iOS 2>&1 || true
-
-          echo "=== Available runtimes ==="
-          xcrun simctl list runtimes
 
           echo "=== Build for device ==="
           mkdir -p build/device
@@ -104,23 +101,10 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             -clonedSourcePackagesDirPath ~/Library/Caches/com.apple.dt.Xcode/SourcePackages \
-            CONFIGURATION_BUILD_DIR=$PWD/build/device 2>&1 || true
+            CONFIGURATION_BUILD_DIR=$PWD/build/device
 
-          if [ -d "$PWD/build/device/Anixart.app" ]; then
-            echo "✅ Device build succeeded"
-            file "$PWD/build/device/Anixart.app/Anixart"
-          else
-            echo "❌ Device build failed, building simulator only"
-            xcodebuild build \
-              -project Anixart.xcodeproj \
-              -scheme Anixart \
-              -configuration Release \
-              -sdk iphonesimulator \
-              -destination 'platform=iOS Simulator,name=iPhone 16 Pro Max,OS=latest' \
-              CODE_SIGNING_ALLOWED=NO \
-              -clonedSourcePackagesDirPath ~/Library/Caches/com.apple.dt.Xcode/SourcePackages \
-              CONFIGURATION_BUILD_DIR=$PWD/build/device
-          fi
+          echo "✅ Device build succeeded"
+          file "$PWD/build/device/Anixart.app/Anixart"
 
       - name: Package unsigned IPA
         run: |
