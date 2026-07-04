@@ -192,9 +192,15 @@ protocol FormEncodable {
     var formValues: [String: String] { get }
 }
 
-struct JSONObject: FormEncodable {
+struct JSONObject: FormEncodable, Encodable {
     let dictionary: [String: String]
     var formValues: [String: String] { dictionary }
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: DynamicKey.self)
+        for (key, value) in dictionary {
+            try container.encode(value, forKey: DynamicKey(stringValue: key)!)
+        }
+    }
 }
 
 struct SignInResponse: Codable {
@@ -219,4 +225,11 @@ struct VerifyResponse: Codable {
 struct RestoreResponse: Codable {
     let code: Int?
     let message: String?
+}
+
+struct DynamicKey: CodingKey {
+    var stringValue: String
+    var intValue: Int?
+    init?(stringValue: String) { self.stringValue = stringValue }
+    init?(intValue: Int) { self.intValue = intValue; stringValue = "\(intValue)" }
 }
