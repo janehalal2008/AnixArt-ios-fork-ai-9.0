@@ -81,8 +81,3 @@ struct CheckLoginResponse: Codable {
     let available: Bool?
     let message: String?
 }
-
-struct ProfileToken: Codable {
-    let token: String?
-    let profile: Profile?
-}
