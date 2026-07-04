@@ -45,14 +45,6 @@ actor APIClient {
         decoder.keyDecodingStrategy = .useDefaultKeys
     }
 
-    func initializeCookies() async {
-        guard let url = URL(string: _baseURL) else { return }
-        var req = URLRequest(url: url)
-        req.setValue(userAgent, forHTTPHeaderField: "User-Agent")
-        req.setValue("application/json", forHTTPHeaderField: "Accept")
-        _ = try? await session.data(for: req)
-    }
-
     func configure(
         baseURL: String,
         token: String?,
