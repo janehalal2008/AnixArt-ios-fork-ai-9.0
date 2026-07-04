@@ -90,31 +90,27 @@ jobs:
             -scheme Anixart \
             -configuration Release \
             -archivePath build/Anixart.xcarchive \
+            -destination 'generic/platform=iOS' \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
-            -clonedSourcePackagesDirPath ~/Library/Caches/com.apple.dt.Xcode/SourcePackages \
-            | xcbeautify
+            -clonedSourcePackagesDirPath ~/Library/Caches/com.apple.dt.Xcode/SourcePackages
 
-      - name: Export unsigned IPA
+      - name: Package unsigned IPA
         run: |
-          mkdir -p build/ipa
-          xcodebuild -exportArchive \
-            -archivePath build/Anixart.xcarchive \
-            -exportPath build/ipa \
-            -exportOptionsPlist ExportOptions.plist \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            | xcbeautify || echo "exportArchive failed, trying manual packaging"
-
-          if [ ! -f build/ipa/*.ipa ]; then
-            echo "Creating IPA manually from .app"
-            APP=$(find build/Anixart.xcarchive -name "*.app" | head -1)
-            mkdir -p build/ipa/Payload
-            cp -r "$APP" build/ipa/Payload/
-            cd build/ipa && zip -r ../Anixart.ipa Payload/ && cd ../..
+          set -e
+          APP_PATH=$(find build/Anixart.xcarchive -name "*.app" -type d | head -1)
+          if [ -z "$APP_PATH" ]; then
+            echo "::error:: .app not found in archive"
+            exit 1
           fi
+          echo "Found .app: $APP_PATH"
+          mkdir -p build/ipa/Payload
+          cp -R "$APP_PATH" build/ipa/Payload/
+          cd build/ipa
+          zip -r ../Anixart.ipa Payload/ -x "*.DS_Store"
+          cd ../..
+          echo "IPA created: $(ls -lh build/Anixart.ipa | awk '{print $5}')"
 
       - name: Upload IPA
         uses: actions/upload-artifact@v4
