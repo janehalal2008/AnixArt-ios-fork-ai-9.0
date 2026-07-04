@@ -36,12 +36,10 @@ actor APIClient {
     private let userAgent = "Anixart/9.0 (Linux; Android 14; Pixel 9 Pro) Mobile"
 
     private init() {
-        let config = URLSessionConfiguration.ephemeral
+        let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 30
         config.timeoutIntervalForResource = 60
-        config.httpShouldHandleCookies = true
         config.httpCookieAcceptPolicy = .always
-        config.httpCookieStorage = HTTPCookieStorage.shared
         session = URLSession(configuration: config)
         decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .useDefaultKeys
