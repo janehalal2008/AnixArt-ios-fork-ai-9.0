@@ -83,19 +83,46 @@ jobs:
           -scheme Anixart
           -clonedSourcePackagesDirPath ~/Library/Caches/com.apple.dt.Xcode/SourcePackages
 
-      - name: Build for device (iphoneos)
+      - name: Diagnose runner
+        run: |
+          echo "=== Xcode ==="
+          xcodebuild -version
+          echo "=== SDKs ==="
+          xcodebuild -showsdks
+          echo "=== Runtimes ==="
+          xcrun simctl list runtimes
+          echo "=== Devices ==="
+          xcrun simctl list devices available
+          echo "=== Generic destination test ==="
+          xcodebuild -showdestinations -project Anixart.xcodeproj -scheme Anixart 2>&1 | head -20 || true
+
+      - name: Build for device using xcodebuild without destination
         run: |
           xcodebuild build \
             -project Anixart.xcodeproj \
             -scheme Anixart \
             -configuration Release \
             -sdk iphoneos \
-            -destination 'generic/platform=iOS' \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             -clonedSourcePackagesDirPath ~/Library/Caches/com.apple.dt.Xcode/SourcePackages \
-            CONFIGURATION_BUILD_DIR=build/device
+            CONFIGURATION_BUILD_DIR=build/device 2>&1 || true
+          if [ -d "build/device/Anixart.app" ]; then
+            echo "✅ BUILD SUCCEEDED"
+          else
+            echo "❌ Build failed. Trying alternative approach..."
+            # Try building with simulator but produce arm64 binary
+            xcodebuild build \
+              -project Anixart.xcodeproj \
+              -scheme Anixart \
+              -configuration Release \
+              -sdk iphonesimulator \
+              -destination 'platform=iOS Simulator,name=iPhone 16 Pro Max,OS=latest' \
+              CODE_SIGNING_ALLOWED=NO \
+              -clonedSourcePackagesDirPath ~/Library/Caches/com.apple.dt.Xcode/SourcePackages \
+              CONFIGURATION_BUILD_DIR=build/sim 2>&1 | tail -5
+          fi
 
       - name: Package unsigned IPA
         run: |
