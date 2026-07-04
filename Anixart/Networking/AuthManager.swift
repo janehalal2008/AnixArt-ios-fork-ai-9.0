@@ -109,10 +109,10 @@ class AuthManager: ObservableObject {
             let data = try await api.requestData("auth/google", method: "POST",
                 body: JSONObject(dictionary: body))
             let response = try JSONDecoder().decode(GoogleResponse.self, from: data)
-            if let token = response.token {
-                saveSession(token: token, profile: nil)
+            if let token = response.profileToken?.token {
+                saveSession(token: token, profile: response.profileToken?.profile)
             } else {
-                error = response.message ?? "Ошибка входа через Google"
+                error = "Ошибка входа через Google (код \(response.code ?? -1))"
             }
         } catch {
             self.error = error.localizedDescription
