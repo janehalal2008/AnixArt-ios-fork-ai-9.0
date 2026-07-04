@@ -53,42 +53,36 @@ struct ProfileToken: Codable {
     let profile: Profile?
 }
 
-struct SignInResponse: Codable {
-    let token: String?
-    let profile: Profile?
-    let message: String?
-}
-
-struct SignUpResponse: Codable {
-    let message: String?
-}
-
-struct VerifyResponse: Codable {
-    let token: String?
-    let message: String?
-}
-
 struct GoogleResponse: Codable {
+    let code: Int?
     let token: String?
-    let message: String?
+    let profileToken: ProfileToken?
 }
 
 struct TelegramResponse: Codable {
+    let code: Int?
     let token: String?
-    let message: String?
+    let profileToken: ProfileToken?
 }
 
 struct VkResponse: Codable {
+    let code: Int?
     let token: String?
-    let message: String?
+    let profileToken: ProfileToken?
 }
 
 struct FirebaseResponse: Codable {
+    let code: Int?
     let token: String?
-    let message: String?
+    let profileToken: ProfileToken?
 }
 
 struct CheckLoginResponse: Codable {
     let available: Bool?
     let message: String?
+}
+
+struct ProfileToken: Codable {
+    let token: String?
+    let profile: Profile?
 }

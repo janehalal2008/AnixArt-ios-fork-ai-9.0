@@ -45,6 +45,18 @@ actor APIClient {
         decoder.keyDecodingStrategy = .useDefaultKeys
     }
 
+    private func encodeFormBody(_ body: Encodable) throws -> Data {
+        var components = URLComponents()
+        components.queryItems = []
+        if let dict = body as? FormEncodable {
+            for (key, value) in dict.formValues {
+                components.queryItems?.append(URLQueryItem(
+                    name: key, value: value.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)))
+            }
+        }
+        return components.query?.data(using: .utf8) ?? Data()
+    }
+
     func configure(
         baseURL: String,
         token: String?,
@@ -84,11 +96,14 @@ actor APIClient {
 
         var request = URLRequest(url: url)
         request.httpMethod = method
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
 
         if let body {
-            request.httpBody = try JSONEncoder().encode(body)
+            let formBody = try encodeFormBody(body)
+            request.httpBody = formBody
+            request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+        } else {
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         }
 
         do {

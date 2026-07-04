@@ -44,16 +44,15 @@ struct ReleaseAPI {
     }
 }
 
-struct AnyJSONObject: Encodable {
+struct AnyJSONObject: FormEncodable {
     let dictionary: [String: Any]
-
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: DynamicKey.self)
+    var formValues: [String: String] {
+        var result: [String: String] = [:]
         for (key, value) in dictionary {
-            if let v = value as? String { try container.encode(v, forKey: DynamicKey(key)) }
-            else if let v = value as? Int { try container.encode(v, forKey: DynamicKey(key)) }
-            else if let v = value as? [Int] { try container.encode(v, forKey: DynamicKey(key)) }
-            else if let v = value as? Bool { try container.encode(v, forKey: DynamicKey(key)) }
+            if let v = value as? String { result[key] = v }
+            else if let v = value as? Int { result[key] = String(v) }
+            else if let v = value as? Bool { result[key] = v ? "1" : "0" }
         }
+        return result
     }
 }

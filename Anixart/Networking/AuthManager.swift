@@ -39,13 +39,14 @@ class AuthManager: ObservableObject {
         error = nil
         do {
             let body = ["login": login, "password": password]
-            let data = try await api.requestData("auth/signIn", method: "POST",
+            let response: SignInResponse = try await api.request("auth/signIn", method: "POST",
                 body: JSONObject(dictionary: body))
-            let response = try JSONDecoder().decode(SignInResponse.self, from: data)
-            if let token = response.token {
+            if let token = response.profileToken?.token {
                 saveSession(token: token, profile: response.profile)
+            } else if response.code == 3 {
+                error = "Неверный логин или пароль"
             } else {
-                error = response.message ?? "Ошибка входа"
+                error = "Ошибка входа (код \(response.code ?? -1))"
             }
         } catch {
             self.error = error.localizedDescription
@@ -58,11 +59,12 @@ class AuthManager: ObservableObject {
         error = nil
         do {
             let body = ["login": login, "email": email, "password": password]
-            let data = try await api.requestData("auth/signUp", method: "POST",
+            let response: SignUpResponse = try await api.request("auth/signUp", method: "POST",
                 body: JSONObject(dictionary: body))
-            let response = try JSONDecoder().decode(SignUpResponse.self, from: data)
-            if let msg = response.message {
-                error = msg
+            if response.code == 0 || response.code == 9 {
+                error = "Код подтверждения отправлен на email"
+            } else {
+                error = "Ошибка регистрации (код \(response.code ?? -1))"
             }
         } catch {
             self.error = error.localizedDescription
@@ -186,22 +188,35 @@ class AuthManager: ObservableObject {
     }
 }
 
-struct JSONObject: Encodable {
-    let dictionary: [String: String]
-
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: DynamicKey.self)
-        for (key, value) in dictionary {
-            try container.encode(value, forKey: DynamicKey(key))
-        }
-    }
+protocol FormEncodable {
+    var formValues: [String: String] { get }
 }
 
-struct DynamicKey: CodingKey {
-    var stringValue: String
-    var intValue: Int?
+struct JSONObject: FormEncodable {
+    let dictionary: [String: String]
+    var formValues: [String: String] { dictionary }
+}
 
-    init?(stringValue: String) { self.stringValue = stringValue }
-    init?(intValue: Int) { self.intValue = intValue; stringValue = "\(intValue)" }
-    init(_ stringValue: String) { self.stringValue = stringValue; intValue = nil }
+struct SignInResponse: Codable {
+    let code: Int?
+    let profile: Profile?
+    let profileToken: ProfileToken?
+}
+
+struct SignUpResponse: Codable {
+    let code: Int?
+    let hash: String?
+    let codeTimestampExpires: Int?
+}
+
+struct VerifyResponse: Codable {
+    let code: Int?
+    let token: String?
+    let profileToken: ProfileToken?
+    let message: String?
+}
+
+struct RestoreResponse: Codable {
+    let code: Int?
+    let message: String?
 }
