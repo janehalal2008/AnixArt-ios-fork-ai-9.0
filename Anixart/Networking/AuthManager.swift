@@ -17,6 +17,7 @@ class AuthManager: ObservableObject {
 
     private let api = APIClient.shared
     private let defaults = UserDefaults.standard
+    private var verifyHash: String = ""
 
     private init() {
         loadSavedSession()
@@ -61,6 +62,7 @@ class AuthManager: ObservableObject {
             let body = ["login": login, "email": email, "password": password]
             let response: SignUpResponse = try await api.request("auth/signUp", method: "POST",
                 body: JSONObject(dictionary: body))
+            verifyHash = response.hash ?? ""
             if response.code == 0 || response.code == 9 {
                 error = "Код подтверждения отправлен на email"
             } else {
@@ -76,22 +78,37 @@ class AuthManager: ObservableObject {
         isLoading = true
         error = nil
         do {
-            let data = try await api.requestData("auth/verify", method: "POST",
-                body: JSONObject(dictionary: ["code": code]))
+            var params: [String: String] = ["code": code]
+            if !verifyHash.isEmpty { params["hash"] = verifyHash }
+
+            // Try POST first
+            var data: Data
+            do {
+                data = try await api.requestData("auth/verify", method: "POST",
+                    body: JSONObject(dictionary: params))
+            } catch {
+                // Try GET if POST fails
+                data = try await api.requestData("auth/verify?code=\(code)" + (verifyHash.isEmpty ? "" : "&hash=\(verifyHash)"),
+                    method: "GET")
+            }
+
             let raw = String(data: data, encoding: .utf8) ?? "nil"
             print("[verify] raw: \(raw)")
 
-            if let rawData = data as? Data {
-                if let json = try? JSONSerialization.jsonObject(with: rawData) as? [String: Any] {
-                    if let t = json["token"] as? String {
-                        saveSession(token: t, profile: nil); isLoading = false; return
-                    }
-                    if let pt = json["profileToken"] as? [String: Any], let t = pt["token"] as? String {
-                        saveSession(token: t, profile: nil); isLoading = false; return
-                    }
-                    error = "API: \(json)"
-                    isLoading = false; return
+            if data.isEmpty {
+                error = "Сервер вернул пустой ответ. Попробуйте позже."
+                isLoading = false; return
+            }
+
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                if let t = json["token"] as? String {
+                    saveSession(token: t, profile: nil); isLoading = false; return
                 }
+                if let pt = json["profileToken"] as? [String: Any], let t = pt["token"] as? String {
+                    saveSession(token: t, profile: nil); isLoading = false; return
+                }
+                error = "API: \(json)"
+                isLoading = false; return
             }
             error = "Неизвестный формат ответа: \(raw.prefix(200))"
         } catch {
