@@ -18,6 +18,9 @@ class AuthManager: ObservableObject {
     private let api = APIClient.shared
     private let defaults = UserDefaults.standard
     private var verifyHash: String = ""
+    private var pendingLogin: String = ""
+    private var pendingEmail: String = ""
+    private var pendingPassword: String = ""
 
     private init() {
         loadSavedSession()
@@ -63,7 +66,10 @@ class AuthManager: ObservableObject {
             let response: SignUpResponse = try await api.request("auth/signUp", method: "POST",
                 body: JSONObject(dictionary: body))
             verifyHash = response.hash ?? ""
-            if response.code == 0 || response.code == 9 {
+            pendingLogin = login
+            pendingEmail = email
+            pendingPassword = password
+            if response.code == 0 || response.code == 7 || response.code == 9 {
                 error = "Код подтверждения отправлен на email"
             } else {
                 error = "Ошибка регистрации (код \(response.code ?? -1))"
@@ -78,39 +84,51 @@ class AuthManager: ObservableObject {
         isLoading = true
         error = nil
         do {
-            var params: [String: String] = ["code": code]
+            var params: [String: String] = [
+                "code": code,
+                "login": pendingLogin,
+                "email": pendingEmail,
+                "password": pendingPassword,
+                "vkAccessToken": "",
+                "googleIdToken": "",
+                "telegramIdToken": ""
+            ]
             if !verifyHash.isEmpty { params["hash"] = verifyHash }
 
-            // Try POST first
-            var data: Data
-            do {
-                data = try await api.requestData("auth/verify", method: "POST",
-                    body: JSONObject(dictionary: params))
-            } catch {
-                // Try GET if POST fails
-                data = try await api.requestData("auth/verify?code=\(code)" + (verifyHash.isEmpty ? "" : "&hash=\(verifyHash)"),
-                    method: "GET")
-            }
+            let data = try await api.requestData("auth/verify", method: "POST",
+                body: JSONObject(dictionary: params))
 
-            let raw = String(data: data, encoding: .utf8) ?? "nil"
+            let raw = String(data: data, encoding: .utf8) ?? ""
             print("[verify] raw: \(raw)")
 
             if data.isEmpty {
-                error = "Сервер вернул пустой ответ. Попробуйте позже."
+                error = "Сервер вернул пустой ответ"
                 isLoading = false; return
             }
 
             if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                // Check for token directly or in profileToken
                 if let t = json["token"] as? String {
                     saveSession(token: t, profile: nil); isLoading = false; return
                 }
                 if let pt = json["profileToken"] as? [String: Any], let t = pt["token"] as? String {
+                    let profileData = pt["profile"] as? [String: Any]
                     saveSession(token: t, profile: nil); isLoading = false; return
+                }
+                // Check error code
+                if let code = json["code"] as? Int {
+                    let messages: [Int: String] = [
+                        7: "Неверный код подтверждения",
+                        8: "Код истёк, запросите новый",
+                        9: "Ошибка верификации, попробуйте зарегистрироваться заново"
+                    ]
+                    error = messages[code] ?? "Ошибка (код \(code))"
+                    isLoading = false; return
                 }
                 error = "API: \(json)"
                 isLoading = false; return
             }
-            error = "Неизвестный формат ответа: \(raw.prefix(200))"
+            error = "Неизвестный формат: \(raw.prefix(100))"
         } catch {
             self.error = error.localizedDescription
         }
