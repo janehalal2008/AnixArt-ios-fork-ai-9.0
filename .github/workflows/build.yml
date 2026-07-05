@@ -39,11 +39,15 @@ jobs:
 
       - run: xcodegen generate
 
-      - run: >
-          xcodebuild -resolvePackageDependencies
-          -project Anixart.xcodeproj
-          -scheme Anixart
-          -clonedSourcePackagesDirPath ~/Library/Caches/com.apple.dt.Xcode/SourcePackages
+      - run: |
+          for i in 1 2 3; do
+            echo "Attempt $i to resolve package dependencies..."
+            xcodebuild -resolvePackageDependencies \
+              -project Anixart.xcodeproj \
+              -scheme Anixart \
+              -clonedSourcePackagesDirPath ~/Library/Caches/com.apple.dt.Xcode/SourcePackages && break
+            sleep 15
+          done
 
       - run: >
           xcodebuild build
@@ -103,11 +107,15 @@ jobs:
 
       - run: xcodegen generate
 
-      - run: >
-          xcodebuild -resolvePackageDependencies
-          -project Anixart.xcodeproj
-          -scheme Anixart
-          -clonedSourcePackagesDirPath ~/Library/Caches/com.apple.dt.Xcode/SourcePackages
+      - run: |
+          for i in 1 2 3; do
+            echo "Attempt $i to resolve package dependencies..."
+            xcodebuild -resolvePackageDependencies \
+              -project Anixart.xcodeproj \
+              -scheme Anixart \
+              -clonedSourcePackagesDirPath ~/Library/Caches/com.apple.dt.Xcode/SourcePackages && break
+            sleep 15
+          done
 
       - name: Build device .app
         run: |
