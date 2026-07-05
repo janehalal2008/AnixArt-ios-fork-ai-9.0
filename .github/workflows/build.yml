@@ -50,13 +50,19 @@ jobs:
           done
 
       - run: |
+          echo "=== Download iOS Simulator runtime ==="
+          xcodebuild -downloadPlatform iOS 2>&1 || true
+          echo "=== Available simulators ==="
+          xcrun simctl list devices available
+
+      - run: |
           mkdir -p build/sim
           xcodebuild build \
             -project Anixart.xcodeproj \
             -scheme Anixart \
             -configuration Debug \
             -sdk iphonesimulator \
-            -destination 'platform=iOS Simulator,name=iPhone 16 Pro Max,OS=latest' \
+            -destination 'platform=iOS Simulator,name=iPhone 16 Pro Max' \
             CODE_SIGNING_ALLOWED=NO \
             CONFIGURATION_BUILD_DIR=$PWD/build/sim \
             -clonedSourcePackagesDirPath ~/Library/Caches/com.apple.dt.Xcode/SourcePackages \
