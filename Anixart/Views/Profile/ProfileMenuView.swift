@@ -67,6 +67,24 @@ struct ProfileMenuView: View {
                         .background(AnixartColor.surface)
                         .cornerRadius(16)
 
+                        NavigationLink(destination: DebugView()) {
+                            HStack {
+                                Image(systemName: "ant.fill")
+                                    .foregroundColor(AnixartColor.textSecondary)
+                                    .frame(width: 28)
+                                Text("Debug")
+                                    .font(AnixartFont.body)
+                                    .foregroundColor(AnixartColor.textPrimary)
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .foregroundColor(AnixartColor.textSecondary)
+                            }
+                            .padding()
+                            .background(AnixartColor.surface)
+                            .cornerRadius(16)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+
                         Button {
                             authManager.logout()
                         } label: {

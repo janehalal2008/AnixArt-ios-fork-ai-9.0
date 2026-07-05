@@ -117,11 +117,15 @@ actor APIClient {
             }
         }
 
+        let bodyString = body != nil ? (String(data: request.httpBody ?? Data(), encoding: .utf8) ?? "") : ""
         print("[API] \(method) \(url)")
 
         do {
             let (data, response) = try await session.data(for: request)
-            print("[API] \(method) \(url) -> \((response as? HTTPURLResponse)?.statusCode ?? 0) \(data.count) bytes")
+            let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+            let responseString = String(data: data, encoding: .utf8) ?? ""
+            print("[API] \(method) \(url) -> \(status) \(data.count) bytes")
+            await APILogger.shared.log(method: method, url: url.absoluteString, status: status, body: bodyString, response: responseString)
             guard let httpResponse = response as? HTTPURLResponse else {
                 throw APIError.serverError("Invalid response")
             }
@@ -139,10 +143,13 @@ actor APIClient {
 
             return try decoder.decode(T.self, from: data)
         } catch let error as APIError {
+            await APILogger.shared.log(method: method, url: url.absoluteString, status: -1, body: bodyString, error: error.localizedDescription)
             throw error
         } catch let error as DecodingError {
+            await APILogger.shared.log(method: method, url: url.absoluteString, status: -2, body: bodyString, error: error.localizedDescription)
             throw APIError.decodingError(error)
         } catch {
+            await APILogger.shared.log(method: method, url: url.absoluteString, status: -3, body: bodyString, error: error.localizedDescription)
             throw APIError.networkError(error)
         }
     }
@@ -187,10 +194,14 @@ actor APIClient {
             }
         }
 
+        let bodyString = body != nil ? (String(data: request.httpBody ?? Data(), encoding: .utf8) ?? "") : ""
         print("[API] \(method) \(url)")
 
         let (data, response) = try await session.data(for: request)
-        print("[API] \(method) \(url) -> \((response as? HTTPURLResponse)?.statusCode ?? 0) \(data.count) bytes")
+        let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+        let responseString = String(data: data, encoding: .utf8) ?? ""
+        print("[API] \(method) \(url) -> \(status) \(data.count) bytes")
+        await APILogger.shared.log(method: method, url: url.absoluteString, status: status, body: bodyString, response: responseString)
         guard let httpResponse = response as? HTTPURLResponse else {
             throw APIError.serverError("Invalid response")
         }
