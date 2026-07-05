@@ -45,27 +45,27 @@ struct SearchAPI {
 
     func searchReleases(page: Int, query: String) async throws -> PaginatedResponse<ReleaseCompact> {
         try await api.request("search/releases/\(page)", method: "POST",
-            body: JSONObject(dictionary: ["query": query]))
+            body: SearchRequest(query: query, searchBy: 0))
     }
 
     func searchCollections(page: Int, query: String) async throws -> PaginatedResponse<CollectionCompact> {
         try await api.request("search/collections/\(page)", method: "POST",
-            body: JSONObject(dictionary: ["query": query]))
+            body: SearchRequest(query: query, searchBy: 0))
     }
 
     func searchProfiles(page: Int, query: String) async throws -> PaginatedResponse<ProfileSlim> {
         try await api.request("search/profiles/\(page)", method: "POST",
-            body: JSONObject(dictionary: ["query": query]))
+            body: SearchRequest(query: query, searchBy: 0))
     }
 
     func searchChannels(page: Int, query: String) async throws -> PaginatedResponse<ChannelCompact> {
         try await api.request("search/channels/\(page)", method: "POST",
-            body: JSONObject(dictionary: ["query": query]))
+            body: SearchRequest(query: query, searchBy: 0))
     }
 
     func searchArticles(page: Int, query: String) async throws -> PaginatedResponse<ArticleCompact> {
         try await api.request("search/articles/\(page)", method: "POST",
-            body: JSONObject(dictionary: ["query": query]))
+            body: SearchRequest(query: query, searchBy: 0))
     }
 }
 

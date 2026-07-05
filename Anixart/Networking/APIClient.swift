@@ -33,7 +33,11 @@ actor APIClient {
     var token: String? { _token }
     var altConnectionMode: Bool { _altConnectionMode }
 
+    let appVersionCode = 26063014
+    let appIsBeta = true
+
     private let userAgent = "Anixart/9.0 (Linux; Android 14; Pixel 9 Pro) Mobile"
+    private let apiVersion = "v2"
 
     private init() {
         let config = URLSessionConfiguration.default
@@ -55,17 +59,21 @@ actor APIClient {
         return items.joined(separator: "&").data(using: .utf8) ?? Data()
     }
 
+    private func encodeJSONBody(_ body: Encodable) throws -> Data {
+        return try JSONEncoder().encode(body)
+    }
+
     func configure(
         baseURL: String,
         token: String?,
         altMode: Bool = false
-    ) {
+    ) async {
         _baseURL = baseURL
         _token = token
         _altConnectionMode = altMode
     }
 
-    func setToken(_ token: String?) {
+    func setToken(_ token: String?) async {
         _token = token
     }
 
@@ -95,17 +103,25 @@ actor APIClient {
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
+        request.setValue(apiVersion, forHTTPHeaderField: "API-Version")
 
         if let body {
-            let formBody = try encodeFormBody(body)
-            request.httpBody = formBody
-            request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-        } else {
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            if body is FormEncodable {
+                let formBody = try encodeFormBody(body)
+                request.httpBody = formBody
+                request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+            } else {
+                let jsonBody = try encodeJSONBody(body)
+                request.httpBody = jsonBody
+                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            }
         }
+
+        print("[API] \(method) \(url)")
 
         do {
             let (data, response) = try await session.data(for: request)
+            print("[API] \(method) \(url) -> \((response as? HTTPURLResponse)?.statusCode ?? 0) \(data.count) bytes")
             guard let httpResponse = response as? HTTPURLResponse else {
                 throw APIError.serverError("Invalid response")
             }
@@ -157,16 +173,24 @@ actor APIClient {
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
+        request.setValue(apiVersion, forHTTPHeaderField: "API-Version")
 
         if let body {
-            let formBody = try encodeFormBody(body)
-            request.httpBody = formBody
-            request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-        } else {
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            if body is FormEncodable {
+                let formBody = try encodeFormBody(body)
+                request.httpBody = formBody
+                request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+            } else {
+                let jsonBody = try encodeJSONBody(body)
+                request.httpBody = jsonBody
+                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            }
         }
 
+        print("[API] \(method) \(url)")
+
         let (data, response) = try await session.data(for: request)
+        print("[API] \(method) \(url) -> \((response as? HTTPURLResponse)?.statusCode ?? 0) \(data.count) bytes")
         guard let httpResponse = response as? HTTPURLResponse else {
             throw APIError.serverError("Invalid response")
         }
@@ -186,11 +210,24 @@ actor APIClient {
     }
 
     func getConfig() async throws -> TogglesResponse {
-        try await request("config/toggles")
+        try await request(
+            "config/toggles",
+            queryItems: [
+                URLQueryItem(name: "version_code", value: "\(appVersionCode)"),
+                URLQueryItem(name: "is_beta", value: appIsBeta ? "true" : "false"),
+                URLQueryItem(name: "is_api_alt", value: altConnectionMode ? "true" : "false")
+            ]
+        )
     }
 
     func getUrls() async throws -> ConfigUrlsResponse {
-        try await request("config/urls")
+        try await request(
+            "config/urls",
+            queryItems: [
+                URLQueryItem(name: "version_code", value: "\(appVersionCode)"),
+                URLQueryItem(name: "is_beta", value: appIsBeta ? "true" : "false")
+            ]
+        )
     }
 }
 

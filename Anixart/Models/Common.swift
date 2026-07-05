@@ -55,6 +55,9 @@ struct NotificationCountResponse: Codable {
 
 struct TogglesResponse: Codable {
     let baseUrl: String?
+    let apiUrl: String?
+    let apiAltUrl: String?
+    let apiAltAvailable: Bool?
     let kodikVideoLinksUrl: String?
     let kodikAdIframeUrl: String?
     let iframeEmbedUrl: String?
