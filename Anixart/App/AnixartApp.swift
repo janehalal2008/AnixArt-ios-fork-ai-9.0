@@ -10,9 +10,8 @@ struct AnixartApp: App {
             ContentView()
                 .environmentObject(authManager)
                 .preferredColorScheme(authManager.isDarkMode ? .dark : nil)
-                .task {
-                    try? await Task.sleep(nanoseconds: 500_000_000)
-                    try? await DDoSSolver.shared.initialize()
+                .onAppear {
+                    Task { try? await DDoSSolver.shared.initialize() }
                 }
         }
     }

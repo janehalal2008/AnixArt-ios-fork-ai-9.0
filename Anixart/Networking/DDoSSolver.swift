@@ -1,56 +1,45 @@
 import Foundation
 import WebKit
 
-actor DDoSSolver: NSObject {
+@MainActor
+class DDoSSolver: NSObject {
     static let shared = DDoSSolver()
     private var webView: WKWebView?
     private var continuation: CheckedContinuation<Void, Error>?
-    private var isReady = false
+    private(set) var isReady = false
 
     func initialize() async throws {
         guard !isReady else { return }
-        try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
+        try await withCheckedThrowingContinuation { cont in
             self.continuation = cont
-            DispatchQueue.main.async {
-                let config = WKWebViewConfiguration()
-                config.websiteDataStore = WKWebsiteDataStore.default()
-                self.webView = WKWebView(frame: .zero, configuration: config)
-                self.webView?.navigationDelegate = self
-                self.webView?.load(URLRequest(url: URL(string: "https://api-s.anixsekai.com/")!))
-                DispatchQueue.main.asyncAfter(deadline: .now() + 8) {
-                    if !self.isReady {
-                        self.copyCookies()
-                        cont.resume()
-                    }
+            let config = WKWebViewConfiguration()
+            config.websiteDataStore = WKWebsiteDataStore.default()
+            let webView = WKWebView(frame: .zero, configuration: config)
+            webView.navigationDelegate = self
+            self.webView = webView
+            webView.load(URLRequest(url: URL(string: "https://api-s.anixsekai.com/")!))
+            DispatchQueue.main.asyncAfter(deadline: .now() + 10) {
+                if !self.isReady {
+                    self.finish()
                 }
             }
         }
         isReady = true
     }
 
-    private func copyCookies() {
-        let dispatchGroup = DispatchGroup()
-        dispatchGroup.enter()
-        DispatchQueue.main.async {
-            self.webView?.configuration.websiteDataStore.httpCookieStore.getAllCookies { cookies in
-                for cookie in cookies {
-                    HTTPCookieStorage.shared.setCookie(cookie)
-                }
-                dispatchGroup.leave()
+    private func finish() {
+        webView?.configuration.websiteDataStore.httpCookieStore.getAllCookies { cookies in
+            for cookie in cookies {
+                HTTPCookieStorage.shared.setCookie(cookie)
             }
         }
-        dispatchGroup.wait()
+        continuation?.resume()
+        continuation = nil
     }
 }
 
 extension DDoSSolver: WKNavigationDelegate {
-    nonisolated func webView(_ wv: WKWebView, didFinish navigation: WKNavigation!) {
-        Task { await self.onPageLoaded() }
-    }
-
-    private func onPageLoaded() {
-        copyCookies()
-        continuation?.resume()
-        continuation = nil
+    func webView(_ wv: WKWebView, didFinish navigation: WKNavigation!) {
+        finish()
     }
 }
