@@ -13,83 +13,122 @@ struct SearchView: View {
 
     var body: some View {
         NavigationStack {
-            VStack {
-                Picker("Тип", selection: $selectedScope) {
-                    ForEach(0..<scopes.count, id: \.self) { i in
-                        Text(scopes[i]).tag(i)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .padding()
+            ZStack {
+                AnixartColor.background.ignoresSafeArea()
 
-                if query.isEmpty {
-                    ContentUnavailableView(
-                        "Поиск",
-                        systemImage: "magnifyingglass",
-                        description: Text("Введите название аниме, коллекции, профиля или канала")
-                    )
-                } else if isLoading {
-                    ProgressView()
-                } else {
-                    List {
-                        switch selectedScope {
-                        case 0:
-                            ForEach(searchResults) { release in
-                                NavigationLink(value: release) {
-                                    SearchReleaseRow(release: release)
+                VStack(spacing: 0) {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 10) {
+                            ForEach(0..<scopes.count, id: \.self) { i in
+                                AnixartFilterChip(
+                                    text: scopes[i],
+                                    isSelected: selectedScope == i
+                                ) {
+                                    selectedScope = i
+                                    Task { await performSearch() }
                                 }
                             }
-                        case 1:
-                            ForEach(collections) { collection in
-                                NavigationLink(destination: CollectionDetailView(collectionId: collection.id ?? 0)) {
-                                    VStack(alignment: .leading) {
-                                        Text(collection.name ?? "")
-                                            .font(.subheadline).fontWeight(.semibold)
-                                        Text(collection.profile?.login ?? "")
-                                            .font(.caption).foregroundColor(.secondary)
-                                    }
-                                }
-                            }
-                        case 2:
-                            ForEach(profiles) { profile in
-                                NavigationLink(destination: ProfileView(profileId: profile.id)) {
-                                    HStack {
-                                        CachedImage(url: profile.avatar)
-                                            .frame(width: 40, height: 40)
-                                            .clipShape(Circle())
-                                        Text(profile.login ?? "")
-                                            .font(.subheadline)
-                                    }
-                                }
-                            }
-                        case 3:
-                            ForEach(channels) { channel in
-                                NavigationLink(destination: ChannelDetailView(channelId: channel.id)) {
-                                    HStack {
-                                        CachedImage(url: channel.avatar)
-                                            .frame(width: 40, height: 40)
-                                            .clipShape(Circle())
-                                        Text(channel.name ?? "")
-                                            .font(.subheadline)
-                                    }
-                                }
-                            }
-                        default:
-                            EmptyView()
                         }
+                        .padding(.horizontal)
+                        .padding(.vertical, 12)
                     }
-                    .listStyle(.plain)
+
+                    if query.isEmpty {
+                        Spacer()
+                        ContentUnavailableView(
+                            "Поиск",
+                            systemImage: "magnifyingglass",
+                            description: Text("Введите название аниме, коллекции, профиля или канала")
+                        )
+                        .foregroundColor(AnixartColor.textSecondary)
+                        Spacer()
+                    } else if isLoading {
+                        Spacer()
+                        ProgressView()
+                            .tint(AnixartColor.accent)
+                        Spacer()
+                    } else {
+                        List {
+                            switch selectedScope {
+                            case 0:
+                                ForEach(searchResults) { release in
+                                    NavigationLink(value: release) {
+                                        AnixartListReleaseRow(release: release)
+                                    }
+                                }
+                            case 1:
+                                ForEach(collections) { collection in
+                                    NavigationLink(destination: CollectionDetailView(collectionId: collection.id ?? 0)) {
+                                        HStack(spacing: 14) {
+                                            CachedImage(url: collection.image)
+                                                .frame(width: 56, height: 56)
+                                                .cornerRadius(12)
+                                            VStack(alignment: .leading, spacing: 6) {
+                                                Text(collection.name ?? "")
+                                                    .font(AnixartFont.body)
+                                                    .fontWeight(.semibold)
+                                                    .foregroundColor(AnixartColor.textPrimary)
+                                                Text(collection.profile?.login ?? "")
+                                                    .font(AnixartFont.small)
+                                                    .foregroundColor(AnixartColor.textSecondary)
+                                            }
+                                            Spacer()
+                                        }
+                                        .padding(.vertical, 4)
+                                        .background(AnixartColor.background)
+                                    }
+                                }
+                            case 2:
+                                ForEach(profiles) { profile in
+                                    NavigationLink(destination: ProfileView(profileId: profile.id)) {
+                                        HStack(spacing: 14) {
+                                            CachedImage(url: profile.avatar)
+                                                .frame(width: 48, height: 48)
+                                                .clipShape(Circle())
+                                            Text(profile.login ?? "")
+                                                .font(AnixartFont.body)
+                                                .foregroundColor(AnixartColor.textPrimary)
+                                            Spacer()
+                                        }
+                                        .padding(.vertical, 4)
+                                        .background(AnixartColor.background)
+                                    }
+                                }
+                            case 3:
+                                ForEach(channels) { channel in
+                                    NavigationLink(destination: ChannelDetailView(channelId: channel.id)) {
+                                        HStack(spacing: 14) {
+                                            CachedImage(url: channel.avatar)
+                                                .frame(width: 48, height: 48)
+                                                .clipShape(Circle())
+                                            Text(channel.name ?? "")
+                                                .font(AnixartFont.body)
+                                                .foregroundColor(AnixartColor.textPrimary)
+                                            Spacer()
+                                        }
+                                        .padding(.vertical, 4)
+                                        .background(AnixartColor.background)
+                                    }
+                                }
+                            default:
+                                EmptyView()
+                            }
+                        }
+                        .listStyle(.plain)
+                        .background(AnixartColor.background)
+                    }
                 }
             }
             .navigationTitle("Поиск")
+            .navigationBarTitleDisplayMode(.large)
+            .toolbarBackground(AnixartColor.background, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
             .navigationDestination(for: ReleaseCompact.self) { release in
                 ReleaseDetailView(releaseId: release.id)
             }
             .searchable(text: $query, prompt: "Название, коллекция, профиль...")
+            .tint(AnixartColor.accent)
             .onChange(of: query) { _, _ in
-                Task { await performSearch() }
-            }
-            .onChange(of: selectedScope) { _, _ in
                 Task { await performSearch() }
             }
         }

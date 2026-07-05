@@ -10,85 +10,97 @@ struct ReleaseDetailView: View {
     @State private var error: String?
 
     var body: some View {
-        ScrollView {
-            if isLoading {
-                ProgressView().padding(.top, 100)
-            } else if let error {
-                Text(error).foregroundColor(.secondary).padding(.top, 100)
-            } else if let release {
-                VStack(alignment: .leading, spacing: 16) {
-                    CachedImage(url: release.poster?.big ?? release.poster?.default)
-                        .aspectRatio(16/9, contentMode: .fill)
-                        .cornerRadius(12)
-                        .padding(.horizontal)
+        ZStack {
+            AnixartColor.background.ignoresSafeArea()
 
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text(release.name)
-                            .font(.title2)
-                            .fontWeight(.bold)
+            ScrollView(showsIndicators: false) {
+                if isLoading {
+                    ProgressView()
+                        .tint(AnixartColor.accent)
+                        .padding(.top, 120)
+                } else if let error {
+                    Text(error)
+                        .foregroundColor(AnixartColor.textSecondary)
+                        .padding(.top, 120)
+                } else if let release {
+                    VStack(alignment: .leading, spacing: 16) {
+                        CachedImage(url: release.poster?.big ?? release.poster?.default)
+                            .aspectRatio(16/9, contentMode: .fill)
+                            .cornerRadius(16)
+                            .padding(.horizontal)
 
-                        HStack(spacing: 16) {
-                            if let rating = release.rating {
-                                Label(String(format: "%.1f", rating), systemImage: "star.fill")
-                                    .foregroundColor(.yellow)
-                            }
-                            if let year = release.year {
-                                Text("\(year)")
-                            }
-                            Text(release.status?.displayName ?? "")
-                                .foregroundColor(.secondary)
-                            if let eps = release.episodes {
-                                Text("\(eps)/\(release.episodesTotal ?? eps) эп.")
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                        .font(.subheadline)
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text(release.name)
+                                .font(.system(size: 24, weight: .bold, design: .rounded))
+                                .foregroundColor(AnixartColor.textPrimary)
 
-                        if let types = release.types, !types.isEmpty {
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 8) {
-                                    ForEach(types) { type in
-                                        Button(type.name) {
-                                            selectedType = type
-                                            Task { await loadEpisodes() }
+                            HStack(spacing: 16) {
+                                if let rating = release.rating {
+                                    Label(String(format: "%.1f", rating), systemImage: "star.fill")
+                                        .foregroundColor(AnixartColor.yellow)
+                                }
+                                if let year = release.year {
+                                    Text("\(year)")
+                                        .foregroundColor(AnixartColor.textSecondary)
+                                }
+                                Text(release.status?.displayName ?? "")
+                                    .foregroundColor(AnixartColor.textSecondary)
+                                if let eps = release.episodes {
+                                    Text("\(eps)/\(release.episodesTotal ?? eps) эп.")
+                                        .foregroundColor(AnixartColor.textSecondary)
+                                }
+                            }
+                            .font(AnixartFont.caption)
+
+                            if let types = release.types, !types.isEmpty {
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    HStack(spacing: 8) {
+                                        ForEach(types) { type in
+                                            Button(type.name) {
+                                                selectedType = type
+                                                Task { await loadEpisodes() }
+                                            }
+                                            .font(AnixartFont.small)
+                                            .padding(.horizontal, 12)
+                                            .padding(.vertical, 6)
+                                            .background(selectedType?.id == type.id ? AnixartColor.accent : AnixartColor.surface)
+                                            .foregroundColor(selectedType?.id == type.id ? .white : AnixartColor.textPrimary)
+                                            .cornerRadius(16)
                                         }
-                                        .font(.caption)
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 6)
-                                        .background(selectedType?.id == type.id ? Color.accentColor : Color(.systemGray6))
-                                        .foregroundColor(selectedType?.id == type.id ? .white : .primary)
-                                        .cornerRadius(16)
                                     }
                                 }
                             }
-                        }
 
-                        if let description = release.description {
-                            Text(description)
-                                .font(.body)
-                                .lineLimit(nil)
-                        }
+                            if let description = release.description {
+                                Text(description)
+                                    .font(AnixartFont.body)
+                                    .foregroundColor(AnixartColor.textSecondary)
+                                    .lineLimit(nil)
+                            }
 
-                        if release.genres?.isEmpty == false {
-                            Text("Жанры: \(release.genres?.map(\.name).joined(separator: ", ") ?? "")")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
+                            if release.genres?.isEmpty == false {
+                                Text("Жанры: \(release.genres?.map(\.name).joined(separator: ", ") ?? "")")
+                                    .font(AnixartFont.caption)
+                                    .foregroundColor(AnixartColor.textSecondary)
+                            }
                         }
-                    }
-                    .padding(.horizontal)
+                        .padding(.horizontal)
 
-                    if let episodes {
-                        EpisodesSection(
-                            episodes: episodes.episodes ?? [],
-                            sources: episodes.sources ?? [],
-                            selectedSource: $selectedSource,
-                            releaseId: releaseId
-                        )
+                        if let episodes {
+                            EpisodesSection(
+                                episodes: episodes.episodes ?? [],
+                                sources: episodes.sources ?? [],
+                                selectedSource: $selectedSource,
+                                releaseId: releaseId
+                            )
+                        }
                     }
                 }
             }
         }
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(AnixartColor.background, for: .navigationBar)
+        .toolbarColorScheme(.dark, for: .navigationBar)
         .task { await loadData() }
     }
 
@@ -126,8 +138,8 @@ struct EpisodesSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Эпизоды")
-                .font(.title3)
-                .fontWeight(.bold)
+                .font(AnixartFont.headline)
+                .foregroundColor(AnixartColor.textPrimary)
                 .padding(.horizontal)
 
             if !sources.isEmpty {
@@ -137,11 +149,11 @@ struct EpisodesSection: View {
                             Button(source.name) {
                                 selectedSource = source
                             }
-                            .font(.caption)
+                            .font(AnixartFont.small)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 6)
-                            .background(selectedSource?.id == source.id ? Color.accentColor : Color(.systemGray6))
-                            .foregroundColor(selectedSource?.id == source.id ? .white : .primary)
+                            .background(selectedSource?.id == source.id ? AnixartColor.accent : AnixartColor.surface)
+                            .foregroundColor(selectedSource?.id == source.id ? .white : AnixartColor.textPrimary)
                             .cornerRadius(16)
                         }
                     }
@@ -156,33 +168,35 @@ struct EpisodesSection: View {
                         source: selectedSource,
                         releaseId: releaseId
                     )) {
-                        EpisodeRow(episode: episode)
+                        AnixartEpisodeRow(episode: episode)
                             .padding(.horizontal)
                     }
+                    .buttonStyle(PlainButtonStyle())
                 }
             }
         }
     }
 }
 
-struct EpisodeRow: View {
+struct AnixartEpisodeRow: View {
     let episode: Episode
 
     var body: some View {
         HStack {
             Text("\(episode.position)")
-                .font(.headline)
-                .foregroundColor(.secondary)
+                .font(AnixartFont.headline)
+                .foregroundColor(AnixartColor.textSecondary)
                 .frame(width: 32)
 
             VStack(alignment: .leading) {
                 Text(episode.name)
-                    .font(.subheadline)
+                    .font(AnixartFont.body)
                     .fontWeight(.medium)
+                    .foregroundColor(AnixartColor.textPrimary)
                 if let hosting = episode.sources?.first?.hosting {
                     Text(hosting)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                        .font(AnixartFont.small)
+                        .foregroundColor(AnixartColor.textSecondary)
                 }
             }
 
@@ -190,9 +204,11 @@ struct EpisodeRow: View {
 
             Image(systemName: "play.circle.fill")
                 .font(.title3)
-                .foregroundColor(.accentColor)
+                .foregroundColor(AnixartColor.accent)
         }
-        .padding(.vertical, 8)
-        .foregroundColor(.primary)
+        .padding(.vertical, 12)
+        .padding(.horizontal)
+        .background(AnixartColor.surface)
+        .cornerRadius(12)
     }
 }

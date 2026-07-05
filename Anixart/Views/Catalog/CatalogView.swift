@@ -2,11 +2,7 @@ import SwiftUI
 
 struct CatalogView: View {
     @State private var releases: [ReleaseCompact] = []
-    @State private var genres: [Genre] = []
-    @State private var types: [TypeItem] = []
-    @State private var selectedGenre: Int?
     @State private var selectedStatus: String?
-    @State private var selectedYear: Int?
     @State private var selectedSort = "rating"
     @State private var isLoading = true
     @State private var page = 1
@@ -24,40 +20,51 @@ struct CatalogView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(statuses, id: \.0) { status in
-                            FilterChip(
-                                text: status.1,
-                                isSelected: selectedStatus == status.0 || (status.0.isEmpty && selectedStatus == nil)
-                            ) {
-                                selectedStatus = status.0.isEmpty ? nil : status.0
-                                page = 1
-                                Task { await loadReleases() }
+            ZStack {
+                AnixartColor.background.ignoresSafeArea()
+
+                VStack(spacing: 0) {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 10) {
+                            ForEach(statuses, id: \.0) { status in
+                                AnixartFilterChip(
+                                    text: status.1,
+                                    isSelected: selectedStatus == status.0 || (status.0.isEmpty && selectedStatus == nil)
+                                ) {
+                                    selectedStatus = status.0.isEmpty ? nil : status.0
+                                    page = 1
+                                    Task { await loadReleases() }
+                                }
                             }
                         }
+                        .padding(.horizontal)
+                        .padding(.vertical, 12)
                     }
-                    .padding()
-                }
 
-                ScrollView {
-                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
-                        ForEach(releases) { release in
-                            NavigationLink(value: release) {
-                                ReleaseGridCard(release: release)
+                    ScrollView {
+                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
+                            ForEach(releases) { release in
+                                NavigationLink(value: release) {
+                                    AnixartGridCard(release: release)
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                            }
+
+                            if hasMore {
+                                ProgressView()
+                                    .tint(AnixartColor.accent)
+                                    .task { await loadMore() }
                             }
                         }
-
-                        if hasMore {
-                            ProgressView()
-                                .task { await loadMore() }
-                        }
+                        .padding(.horizontal)
+                        .padding(.bottom, 80)
                     }
-                    .padding()
                 }
             }
             .navigationTitle("Каталог")
+            .navigationBarTitleDisplayMode(.large)
+            .toolbarBackground(AnixartColor.background, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
             .navigationDestination(for: ReleaseCompact.self) { release in
                 ReleaseDetailView(releaseId: release.id)
             }
@@ -88,7 +95,7 @@ struct CatalogView: View {
     }
 }
 
-struct FilterChip: View {
+struct AnixartFilterChip: View {
     let text: String
     let isSelected: Bool
     let action: () -> Void
@@ -96,44 +103,55 @@ struct FilterChip: View {
     var body: some View {
         Button(action: action) {
             Text(text)
-                .font(.subheadline)
+                .font(AnixartFont.caption)
+                .fontWeight(isSelected ? .semibold : .regular)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
-                .background(isSelected ? Color.accentColor : Color(.systemGray6))
-                .foregroundColor(isSelected ? .white : .primary)
+                .background(isSelected ? AnixartColor.accent : AnixartColor.surface)
+                .foregroundColor(isSelected ? .white : AnixartColor.textSecondary)
                 .cornerRadius(20)
         }
+        .buttonStyle(PlainButtonStyle())
     }
 }
 
-struct ReleaseGridCard: View {
+struct AnixartGridCard: View {
     let release: ReleaseCompact
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            CachedImage(url: release.poster?.preview)
-                .aspectRatio(3/4, contentMode: .fill)
-                .cornerRadius(12)
+        VStack(alignment: .leading, spacing: 8) {
+            ZStack(alignment: .bottomLeading) {
+                CachedImage(url: release.poster?.preview)
+                    .aspectRatio(3/4, contentMode: .fill)
+                    .cornerRadius(16)
+
+                if let rating = release.rating {
+                    HStack(spacing: 4) {
+                        Image(systemName: "star.fill")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(AnixartColor.yellow)
+                        Text(String(format: "%.1f", rating))
+                            .font(AnixartFont.small)
+                            .foregroundColor(.white)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.black.opacity(0.6))
+                    .cornerRadius(8)
+                    .padding(8)
+                }
+            }
 
             Text(release.name)
-                .font(.caption)
+                .font(AnixartFont.caption)
+                .foregroundColor(AnixartColor.textPrimary)
                 .fontWeight(.semibold)
                 .lineLimit(2)
 
-            HStack {
-                if let rating = release.rating {
-                    Image(systemName: "star.fill")
-                        .font(.system(size: 10))
-                        .foregroundColor(.yellow)
-                    Text(String(format: "%.1f", rating))
-                        .font(.caption2)
-                }
-                Spacer()
-                Text(release.status?.displayName ?? "")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-            }
+            Text(release.status?.displayName ?? "")
+                .font(AnixartFont.small)
+                .foregroundColor(AnixartColor.textSecondary)
+                .lineLimit(1)
         }
-        .foregroundColor(.primary)
     }
 }

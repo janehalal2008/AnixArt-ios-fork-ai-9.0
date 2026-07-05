@@ -8,47 +8,63 @@ struct HomeView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                if isLoading {
-                    ProgressView()
-                        .padding(.top, 100)
-                } else if let error {
-                    VStack(spacing: 16) {
-                        Text(error).foregroundColor(.secondary)
-                        Button("Обновить") { Task { await loadData() } }
-                    }
-                    .padding(.top, 100)
-                } else {
-                    LazyVStack(alignment: .leading, spacing: 24) {
-                        if !latestReleases.isEmpty {
-                            SectionHeader(title: "Последние релизы", action: {})
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 12) {
-                                    ForEach(latestReleases) { release in
-                                        NavigationLink(value: release) {
-                                            ReleaseCard(release: release)
+            ZStack {
+                AnixartColor.background.ignoresSafeArea()
+
+                ScrollView(showsIndicators: false) {
+                    if isLoading {
+                        ProgressView()
+                            .tint(AnixartColor.accent)
+                            .padding(.top, 120)
+                    } else if let error {
+                        VStack(spacing: 16) {
+                            Text(error)
+                                .foregroundColor(AnixartColor.textSecondary)
+                                .multilineTextAlignment(.center)
+                            Button("Обновить") { Task { await loadData() } }
+                                .foregroundColor(AnixartColor.accent)
+                        }
+                        .padding(.top, 120)
+                        .padding(.horizontal)
+                    } else {
+                        LazyVStack(alignment: .leading, spacing: 28) {
+                            if !latestReleases.isEmpty {
+                                SectionHeader(title: "Последние релизы")
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    HStack(spacing: 14) {
+                                        ForEach(latestReleases) { release in
+                                            NavigationLink(value: release) {
+                                                AnixartReleaseCard(release: release)
+                                            }
+                                            .buttonStyle(PlainButtonStyle())
                                         }
                                     }
+                                    .padding(.horizontal)
                                 }
-                                .padding(.horizontal)
                             }
-                        }
 
-                        if !feedArticles.isEmpty {
-                            SectionHeader(title: "Лента", action: {})
-                            ForEach(feedArticles) { article in
-                                NavigationLink(value: article) {
-                                    ArticleRow(article: article)
+                            if !feedArticles.isEmpty {
+                                SectionHeader(title: "Лента")
+                                LazyVStack(spacing: 12) {
+                                    ForEach(feedArticles) { article in
+                                        NavigationLink(value: article) {
+                                            AnixartArticleRow(article: article)
+                                        }
+                                        .buttonStyle(PlainButtonStyle())
                                         .padding(.horizontal)
+                                    }
                                 }
                             }
                         }
+                        .padding(.vertical)
                     }
-                    .padding(.vertical)
                 }
+                .refreshable { await loadData() }
             }
-            .refreshable { await loadData() }
             .navigationTitle("Anixart")
+            .navigationBarTitleDisplayMode(.large)
+            .toolbarBackground(AnixartColor.background, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
             .navigationDestination(for: ReleaseCompact.self) { release in
                 ReleaseDetailView(releaseId: release.id)
             }
@@ -77,84 +93,101 @@ struct HomeView: View {
 
 struct SectionHeader: View {
     let title: String
-    let action: (() -> Void)?
 
     var body: some View {
         HStack {
             Text(title)
-                .font(.title3)
-                .fontWeight(.bold)
+                .font(AnixartFont.headline)
+                .foregroundColor(AnixartColor.textPrimary)
             Spacer()
-            Button("Все") { action?() }
-                .font(.subheadline)
         }
         .padding(.horizontal)
     }
 }
 
-struct ReleaseCard: View {
+struct AnixartReleaseCard: View {
     let release: ReleaseCompact
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            CachedImage(url: release.poster?.preview)
-                .frame(width: 140, height: 200)
-                .cornerRadius(12)
+            ZStack(alignment: .bottomLeading) {
+                CachedImage(url: release.poster?.preview)
+                    .frame(width: 150, height: 220)
+                    .cornerRadius(16)
 
-            Text(release.name)
-                .font(.caption)
-                .fontWeight(.semibold)
-                .lineLimit(2)
-                .frame(width: 140, alignment: .leading)
-
-            if let rating = release.rating {
-                HStack(spacing: 4) {
-                    Image(systemName: "star.fill")
-                        .font(.caption2)
-                        .foregroundColor(.yellow)
-                    Text(String(format: "%.1f", rating))
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
+                if let rating = release.rating {
+                    HStack(spacing: 4) {
+                        Image(systemName: "star.fill")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(AnixartColor.yellow)
+                        Text(String(format: "%.1f", rating))
+                            .font(AnixartFont.small)
+                            .foregroundColor(.white)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.black.opacity(0.6))
+                    .cornerRadius(8)
+                    .padding(8)
                 }
             }
+
+            Text(release.name)
+                .font(AnixartFont.caption)
+                .foregroundColor(AnixartColor.textPrimary)
+                .lineLimit(2)
+                .frame(width: 150, alignment: .leading)
+
+            Text(release.status?.displayName ?? "")
+                .font(AnixartFont.small)
+                .foregroundColor(AnixartColor.textSecondary)
+                .lineLimit(1)
+                .frame(width: 150, alignment: .leading)
         }
-        .foregroundColor(.primary)
     }
 }
 
-struct ArticleRow: View {
+struct AnixartArticleRow: View {
     let article: ArticleCompact
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 14) {
             CachedImage(url: article.image)
-                .frame(width: 80, height: 80)
-                .cornerRadius(8)
+                .frame(width: 90, height: 90)
+                .cornerRadius(14)
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 6) {
                 Text(article.title ?? "")
-                    .font(.subheadline)
+                    .font(AnixartFont.body)
                     .fontWeight(.semibold)
+                    .foregroundColor(AnixartColor.textPrimary)
                     .lineLimit(2)
 
                 Text(article.channelName ?? "")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                    .font(AnixartFont.small)
+                    .foregroundColor(AnixartColor.accentPurple)
+                    .lineLimit(1)
 
-                HStack {
+                HStack(spacing: 6) {
                     Image(systemName: "bubble.left")
-                        .font(.caption2)
+                        .font(.system(size: 11))
+                        .foregroundColor(AnixartColor.textSecondary)
                     Text("\(article.commentsCount ?? 0)")
-                        .font(.caption2)
+                        .font(AnixartFont.small)
+                        .foregroundColor(AnixartColor.textSecondary)
                     Spacer()
                     if let date = article.createdAt {
                         Text(date.replacingOccurrences(of: "T", with: " ").prefix(16))
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
+                            .font(AnixartFont.small)
+                            .foregroundColor(AnixartColor.textSecondary)
                     }
                 }
             }
+
+            Spacer()
         }
-        .foregroundColor(.primary)
+        .padding(12)
+        .background(AnixartColor.surface)
+        .cornerRadius(16)
     }
 }

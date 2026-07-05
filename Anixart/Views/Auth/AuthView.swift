@@ -1,71 +1,81 @@
 import SwiftUI
+import GoogleSignIn
 
 struct AuthView: View {
     @EnvironmentObject var authManager: AuthManager
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 24) {
-                Spacer()
+            ZStack {
+                AnixartColor.background.ignoresSafeArea()
 
-                Image(systemName: "play.rectangle.fill")
-                    .font(.system(size: 72))
-                    .foregroundColor(.accentColor)
+                VStack(spacing: 24) {
+                    Spacer()
 
-                Text("Anixart")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-
-                Text("Аниме и манга\nв твоём кармане")
-                    .font(.body)
-                    .multilineTextAlignment(.center)
-                    .foregroundColor(.secondary)
-
-                Spacer()
-
-                VStack(spacing: 12) {
-                    NavigationLink(destination: SignInView()) {
-                        Text("Войти")
-                            .font(.headline)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(Color.accentColor)
-                            .cornerRadius(12)
+                    ZStack {
+                        Circle()
+                            .fill(AnixartColor.accent.opacity(0.2))
+                            .frame(width: 120, height: 120)
+                        Image(systemName: "play.rectangle.fill")
+                            .font(.system(size: 60))
+                            .foregroundColor(AnixartColor.accent)
                     }
 
-                    NavigationLink(destination: SignUpView()) {
-                        Text("Регистрация")
-                            .font(.headline)
-                            .foregroundColor(.accentColor)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(Color.accentColor, lineWidth: 1)
-                            )
+                    Text("Anixart")
+                        .font(.system(size: 38, weight: .bold, design: .rounded))
+                        .foregroundColor(AnixartColor.textPrimary)
+
+                    Text("Аниме и манга\nв твоём кармане")
+                        .font(AnixartFont.body)
+                        .multilineTextAlignment(.center)
+                        .foregroundColor(AnixartColor.textSecondary)
+
+                    Spacer()
+
+                    VStack(spacing: 14) {
+                        NavigationLink(destination: SignInView()) {
+                            Text("Войти")
+                                .font(AnixartFont.headline)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(AnixartColor.accent)
+                                .cornerRadius(14)
+                        }
+
+                        NavigationLink(destination: SignUpView()) {
+                            Text("Регистрация")
+                                .font(AnixartFont.headline)
+                                .foregroundColor(AnixartColor.accent)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .stroke(AnixartColor.accent, lineWidth: 1.5)
+                                )
+                        }
                     }
+                    .padding(.horizontal, 32)
+
+                    VStack(spacing: 14) {
+                        Text("Или войти через")
+                            .font(AnixartFont.caption)
+                            .foregroundColor(AnixartColor.textSecondary)
+
+                        HStack(spacing: 20) {
+                            SocialLoginButton(systemImage: "globe", color: AnixartColor.blue) {
+                                await authManager.signInWithGoogle(presenting: UIApplication.shared.rootViewController ?? UIViewController())
+                            }
+                            SocialLoginButton(systemImage: "paperplane.fill", color: AnixartColor.accentPurple) {
+                                await authManager.signInWithTelegram()
+                            }
+                            SocialLoginButton(systemImage: "person.circle.fill", color: AnixartColor.blue) {
+                                await authManager.signInWithVK()
+                            }
+                        }
+                    }
+                    .padding(.bottom, 40)
                 }
-                .padding(.horizontal, 32)
-
-                VStack(spacing: 12) {
-                    Text("Или войти через")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-
-                    HStack(spacing: 20) {
-                        SocialLoginButton(systemImage: "globe", color: .blue) {
-                            await authManager.signInWithGoogle(presenting: UIApplication.shared.rootViewController ?? UIViewController())
-                        }
-                        SocialLoginButton(systemImage: "paperplane.fill", color: .cyan) {
-                            await authManager.signInWithTelegram()
-                        }
-                        SocialLoginButton(systemImage: "person.circle.fill", color: .blue) {
-                            await authManager.signInWithVK()
-                        }
-                    }
-                }
-                .padding(.bottom, 40)
             }
         }
     }
@@ -85,18 +95,79 @@ struct SocialLoginButton: View {
         } label: {
             if isLoading {
                 ProgressView()
-                    .frame(width: 52, height: 52)
-                    .background(Color(.systemGray6))
+                    .tint(AnixartColor.accent)
+                    .frame(width: 56, height: 56)
+                    .background(AnixartColor.surface)
                     .clipShape(Circle())
             } else {
                 Image(systemName: systemImage)
                     .font(.title2)
                     .foregroundColor(color)
-                    .frame(width: 52, height: 52)
-                    .background(Color(.systemGray6))
+                    .frame(width: 56, height: 56)
+                    .background(AnixartColor.surface)
                     .clipShape(Circle())
             }
         }
+        .buttonStyle(PlainButtonStyle())
+    }
+}
+
+struct AnixartTextField: View {
+    let placeholder: String
+    @Binding var text: String
+    var isSecure = false
+    var keyboardType: UIKeyboardType = .default
+    var autocapitalization: TextInputAutocapitalization = .never
+
+    var body: some View {
+        Group {
+            if isSecure {
+                SecureField(placeholder, text: $text)
+            } else {
+                TextField(placeholder, text: $text)
+                    .keyboardType(keyboardType)
+            }
+        }
+        .textInputAutocapitalization(autocapitalization)
+        .disableAutocorrection(true)
+        .padding()
+        .background(AnixartColor.surface)
+        .foregroundColor(AnixartColor.textPrimary)
+        .cornerRadius(12)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(AnixartColor.divider, lineWidth: 1)
+        )
+    }
+}
+
+struct AnixartPrimaryButton: View {
+    let title: String
+    let isLoading: Bool
+    let action: () -> Void
+    let disabled: Bool
+
+    var body: some View {
+        Button(action: action) {
+            if isLoading {
+                ProgressView()
+                    .tint(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(AnixartColor.accent)
+                    .cornerRadius(14)
+            } else {
+                Text(title)
+                    .font(AnixartFont.headline)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(AnixartColor.accent)
+                    .cornerRadius(14)
+            }
+        }
+        .disabled(disabled)
+        .buttonStyle(PlainButtonStyle())
     }
 }
 
@@ -106,44 +177,39 @@ struct SignInView: View {
     @State private var password = ""
 
     var body: some View {
-        VStack(spacing: 20) {
-            TextField("Логин или email", text: $login)
-                .textFieldStyle(.roundedBorder)
-                .autocapitalization(.none)
-                .disableAutocorrection(true)
+        ZStack {
+            AnixartColor.background.ignoresSafeArea()
 
-            SecureField("Пароль", text: $password)
-                .textFieldStyle(.roundedBorder)
+            VStack(spacing: 20) {
+                AnixartTextField(placeholder: "Логин или email", text: $login)
+                AnixartTextField(placeholder: "Пароль", text: $password, isSecure: true)
 
-            if let error = authManager.error {
-                Text(error)
-                    .font(.caption)
-                    .foregroundColor(.red)
-            }
+                if let error = authManager.error {
+                    Text(error)
+                        .font(AnixartFont.caption)
+                        .foregroundColor(AnixartColor.accent)
+                        .multilineTextAlignment(.center)
+                }
 
-            Button {
-                Task { await authManager.signIn(login: login, password: password) }
-            } label: {
-                if authManager.isLoading {
-                    ProgressView().tint(.white)
-                        .frame(maxWidth: .infinity).padding(.vertical, 16)
-                        .background(Color.accentColor).cornerRadius(12)
-                } else {
-                    Text("Войти")
-                        .font(.headline).foregroundColor(.white)
-                        .frame(maxWidth: .infinity).padding(.vertical, 16)
-                        .background(Color.accentColor).cornerRadius(12)
+                AnixartPrimaryButton(
+                    title: "Войти",
+                    isLoading: authManager.isLoading,
+                    action: { Task { await authManager.signIn(login: login, password: password) } },
+                    disabled: login.isEmpty || password.isEmpty || authManager.isLoading
+                )
+
+                NavigationLink(destination: RestoreView()) {
+                    Text("Забыли пароль?")
+                        .font(AnixartFont.caption)
+                        .foregroundColor(AnixartColor.textSecondary)
                 }
             }
-            .disabled(login.isEmpty || password.isEmpty || authManager.isLoading)
-
-            NavigationLink(destination: RestoreView()) {
-                Text("Забыли пароль?")
-                    .font(.subheadline)
-            }
+            .padding(32)
         }
-        .padding(32)
         .navigationTitle("Вход")
+        .navigationBarTitleDisplayMode(.large)
+        .toolbarBackground(AnixartColor.background, for: .navigationBar)
+        .toolbarColorScheme(.dark, for: .navigationBar)
     }
 }
 
@@ -154,46 +220,40 @@ struct SignUpView: View {
     @State private var password = ""
 
     var body: some View {
-        VStack(spacing: 20) {
-            TextField("Логин", text: $login)
-                .textFieldStyle(.roundedBorder)
-                .autocapitalization(.none)
+        ZStack {
+            AnixartColor.background.ignoresSafeArea()
 
-            TextField("Email", text: $email)
-                .textFieldStyle(.roundedBorder)
-                .autocapitalization(.none)
-                .keyboardType(.emailAddress)
+            VStack(spacing: 20) {
+                AnixartTextField(placeholder: "Логин", text: $login)
+                AnixartTextField(placeholder: "Email", text: $email, keyboardType: .emailAddress)
+                AnixartTextField(placeholder: "Пароль", text: $password, isSecure: true)
 
-            SecureField("Пароль", text: $password)
-                .textFieldStyle(.roundedBorder)
+                if let error = authManager.error {
+                    Text(error)
+                        .font(AnixartFont.caption)
+                        .foregroundColor(AnixartColor.accent)
+                        .multilineTextAlignment(.center)
+                }
 
-            if let error = authManager.error {
-                Text(error).font(.caption).foregroundColor(.red)
-            }
+                AnixartPrimaryButton(
+                    title: "Зарегистрироваться",
+                    isLoading: authManager.isLoading,
+                    action: { Task { await authManager.signUp(login: login, email: email, password: password) } },
+                    disabled: login.isEmpty || email.isEmpty || password.isEmpty || authManager.isLoading
+                )
 
-            Button {
-                Task { await authManager.signUp(login: login, email: email, password: password) }
-            } label: {
-                if authManager.isLoading {
-                    ProgressView().tint(.white)
-                        .frame(maxWidth: .infinity).padding(.vertical, 16)
-                        .background(Color.accentColor).cornerRadius(12)
-                } else {
-                    Text("Зарегистрироваться")
-                        .font(.headline).foregroundColor(.white)
-                        .frame(maxWidth: .infinity).padding(.vertical, 16)
-                        .background(Color.accentColor).cornerRadius(12)
+                NavigationLink(destination: VerifyView()) {
+                    Text("Ввести код подтверждения")
+                        .font(AnixartFont.caption)
+                        .foregroundColor(AnixartColor.textSecondary)
                 }
             }
-            .disabled(login.isEmpty || email.isEmpty || password.isEmpty || authManager.isLoading)
-
-            NavigationLink(destination: VerifyView()) {
-                Text("Ввести код подтверждения")
-                    .font(.subheadline)
-            }
+            .padding(32)
         }
-        .padding(32)
         .navigationTitle("Регистрация")
+        .navigationBarTitleDisplayMode(.large)
+        .toolbarBackground(AnixartColor.background, for: .navigationBar)
+        .toolbarColorScheme(.dark, for: .navigationBar)
     }
 }
 
@@ -202,37 +262,37 @@ struct VerifyView: View {
     @State private var code = ""
 
     var body: some View {
-        VStack(spacing: 20) {
-            Text("Введите код подтверждения,\nотправленный на вашу почту")
-                .multilineTextAlignment(.center)
-                .foregroundColor(.secondary)
+        ZStack {
+            AnixartColor.background.ignoresSafeArea()
 
-            TextField("Код", text: $code)
-                .textFieldStyle(.roundedBorder)
-                .keyboardType(.numberPad)
+            VStack(spacing: 20) {
+                Text("Введите код подтверждения,\nотправленный на вашу почту")
+                    .font(AnixartFont.body)
+                    .multilineTextAlignment(.center)
+                    .foregroundColor(AnixartColor.textSecondary)
 
-            if let error = authManager.error {
-                Text(error).font(.caption).foregroundColor(.red)
-            }
+                AnixartTextField(placeholder: "Код", text: $code, keyboardType: .numberPad)
 
-            Button {
-                Task { await authManager.verify(code: code) }
-            } label: {
-                if authManager.isLoading {
-                    ProgressView().tint(.white)
-                        .frame(maxWidth: .infinity).padding(.vertical, 16)
-                        .background(Color.accentColor).cornerRadius(12)
-                } else {
-                    Text("Подтвердить")
-                        .font(.headline).foregroundColor(.white)
-                        .frame(maxWidth: .infinity).padding(.vertical, 16)
-                        .background(Color.accentColor).cornerRadius(12)
+                if let error = authManager.error {
+                    Text(error)
+                        .font(AnixartFont.caption)
+                        .foregroundColor(AnixartColor.accent)
+                        .multilineTextAlignment(.center)
                 }
+
+                AnixartPrimaryButton(
+                    title: "Подтвердить",
+                    isLoading: authManager.isLoading,
+                    action: { Task { await authManager.verify(code: code) } },
+                    disabled: code.isEmpty || authManager.isLoading
+                )
             }
-            .disabled(code.isEmpty || authManager.isLoading)
+            .padding(32)
         }
-        .padding(32)
         .navigationTitle("Подтверждение")
+        .navigationBarTitleDisplayMode(.large)
+        .toolbarBackground(AnixartColor.background, for: .navigationBar)
+        .toolbarColorScheme(.dark, for: .navigationBar)
     }
 }
 
@@ -241,36 +301,36 @@ struct RestoreView: View {
     @State private var login = ""
 
     var body: some View {
-        VStack(spacing: 20) {
-            Text("Введите ваш логин или email\nдля восстановления пароля")
-                .multilineTextAlignment(.center)
-                .foregroundColor(.secondary)
+        ZStack {
+            AnixartColor.background.ignoresSafeArea()
 
-            TextField("Логин или email", text: $login)
-                .textFieldStyle(.roundedBorder)
-                .autocapitalization(.none)
+            VStack(spacing: 20) {
+                Text("Введите ваш логин или email\nдля восстановления пароля")
+                    .font(AnixartFont.body)
+                    .multilineTextAlignment(.center)
+                    .foregroundColor(AnixartColor.textSecondary)
 
-            if let error = authManager.error {
-                Text(error).font(.caption).foregroundColor(.red)
-            }
+                AnixartTextField(placeholder: "Логин или email", text: $login)
 
-            Button {
-                Task { await authManager.restore(login: login) }
-            } label: {
-                if authManager.isLoading {
-                    ProgressView().tint(.white)
-                        .frame(maxWidth: .infinity).padding(.vertical, 16)
-                        .background(Color.accentColor).cornerRadius(12)
-                } else {
-                    Text("Восстановить")
-                        .font(.headline).foregroundColor(.white)
-                        .frame(maxWidth: .infinity).padding(.vertical, 16)
-                        .background(Color.accentColor).cornerRadius(12)
+                if let error = authManager.error {
+                    Text(error)
+                        .font(AnixartFont.caption)
+                        .foregroundColor(AnixartColor.accent)
+                        .multilineTextAlignment(.center)
                 }
+
+                AnixartPrimaryButton(
+                    title: "Восстановить",
+                    isLoading: authManager.isLoading,
+                    action: { Task { await authManager.restore(login: login) } },
+                    disabled: login.isEmpty || authManager.isLoading
+                )
             }
-            .disabled(login.isEmpty || authManager.isLoading)
+            .padding(32)
         }
-        .padding(32)
         .navigationTitle("Восстановление")
+        .navigationBarTitleDisplayMode(.large)
+        .toolbarBackground(AnixartColor.background, for: .navigationBar)
+        .toolbarColorScheme(.dark, for: .navigationBar)
     }
 }

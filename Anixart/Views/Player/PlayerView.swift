@@ -14,61 +14,66 @@ struct PlayerView: View {
 
     var body: some View {
         GeometryReader { geo in
-            VStack(spacing: 0) {
-                ZStack {
-                    Color.black
+            ZStack {
+                Color.black.ignoresSafeArea()
 
-                    if let error {
-                        VStack(spacing: 12) {
-                            Text(error)
-                                .foregroundColor(.white)
-                                .multilineTextAlignment(.center)
-                            if source?.hosting?.lowercased() == "kodik" || source?.hosting?.lowercased() == "iframe" {
-                                WebPlayerView(url: source?.url)
-                                    .frame(height: isLandscape ? geo.size.height : geo.size.width * 9/16)
+                VStack(spacing: 0) {
+                    ZStack {
+                        if let error {
+                            VStack(spacing: 12) {
+                                Text(error)
+                                    .foregroundColor(.white)
+                                    .multilineTextAlignment(.center)
+                                if source?.hosting?.lowercased() == "kodik" || source?.hosting?.lowercased() == "iframe" {
+                                    WebPlayerView(url: source?.url)
+                                        .frame(height: isLandscape ? geo.size.height : geo.size.width * 9/16)
+                                }
                             }
+                        } else if isLoading {
+                            ProgressView()
+                                .tint(AnixartColor.accent)
+                        } else if let player {
+                            VideoPlayer(player: player)
+                                .frame(height: isLandscape ? geo.size.height : geo.size.width * 9/16)
+                        } else if source?.hosting?.lowercased() == "kodik" ||
+                                    source?.hosting?.lowercased() == "iframe" ||
+                                    source?.hosting?.lowercased() == "youtube" {
+                            WebPlayerView(url: source?.url)
+                                .frame(height: isLandscape ? geo.size.height : geo.size.width * 9/16)
                         }
-                    } else if isLoading {
-                        ProgressView()
-                            .tint(.white)
-                    } else if let player {
-                        VideoPlayer(player: player)
-                            .frame(height: isLandscape ? geo.size.height : geo.size.width * 9/16)
-                    } else if source?.hosting?.lowercased() == "kodik" ||
-                                source?.hosting?.lowercased() == "iframe" ||
-                                source?.hosting?.lowercased() == "youtube" {
-                        WebPlayerView(url: source?.url)
-                            .frame(height: isLandscape ? geo.size.height : geo.size.width * 9/16)
                     }
-                }
-                .frame(height: isLandscape ? geo.size.height : geo.size.width * 9/16)
+                    .frame(height: isLandscape ? geo.size.height : geo.size.width * 9/16)
 
-                if !isLandscape {
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Эпизод \(episode.position): \(episode.name)")
-                                .font(.headline)
+                    if !isLandscape {
+                        ScrollView(showsIndicators: false) {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("Эпизод \(episode.position): \(episode.name)")
+                                    .font(AnixartFont.headline)
+                                    .foregroundColor(AnixartColor.textPrimary)
 
-                            if let hosting = source?.hosting {
-                                Text("Хостинг: \(hosting)")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
+                                if let hosting = source?.hosting {
+                                    Text("Хостинг: \(hosting)")
+                                        .font(AnixartFont.caption)
+                                        .foregroundColor(AnixartColor.textSecondary)
+                                }
+
+                                if let url = source?.url {
+                                    Text("URL: \(url)")
+                                        .font(AnixartFont.small)
+                                        .foregroundColor(AnixartColor.textSecondary)
+                                        .lineLimit(1)
+                                }
                             }
-
-                            if let url = source?.url {
-                                Text("URL: \(url)")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                    .lineLimit(1)
-                            }
+                            .padding()
                         }
-                        .padding()
+                        .background(AnixartColor.background)
                     }
                 }
             }
         }
         .navigationTitle("\(episode.position) серия")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.black, for: .navigationBar)
         .task { await loadVideo() }
         .onRotate { newOrientation in
             isLandscape = newOrientation.isLandscape

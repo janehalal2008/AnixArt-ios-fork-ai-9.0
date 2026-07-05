@@ -3,38 +3,49 @@ import SwiftUI
 struct MainTabView: View {
     @State private var selectedTab = 0
 
+    private let tabs = [
+        (title: "Главная", icon: "house.fill", index: 0),
+        (title: "Каталог", icon: "square.grid.2x2.fill", index: 1),
+        (title: "Обзор", icon: "sparkles", index: 2),
+        (title: "Поиск", icon: "magnifyingglass", index: 3),
+        (title: "Профиль", icon: "person.fill", index: 4)
+    ]
+
     var body: some View {
-        TabView(selection: $selectedTab) {
-            HomeView()
-                .tabItem {
-                    Label("Главная", systemImage: selectedTab == 0 ? "house.fill" : "house")
-                }
-                .tag(0)
+        ZStack(alignment: .bottom) {
+            AnixartColor.background.ignoresSafeArea()
 
-            CatalogView()
-                .tabItem {
-                    Label("Каталог", systemImage: selectedTab == 1 ? "square.grid.2x2.fill" : "square.grid.2x2")
-                }
-                .tag(1)
+            switch selectedTab {
+            case 0: HomeView()
+            case 1: CatalogView()
+            case 2: DiscoverView()
+            case 3: SearchView()
+            case 4: ProfileMenuView()
+            default: HomeView()
+            }
 
-            DiscoverView()
-                .tabItem {
-                    Label("Обзор", systemImage: selectedTab == 2 ? "sparkles.fill" : "sparkles")
+            VStack(spacing: 0) {
+                Divider().background(AnixartColor.divider)
+                HStack(spacing: 0) {
+                    ForEach(tabs, id: \.index) { tab in
+                        Button {
+                            selectedTab = tab.index
+                        } label: {
+                            VStack(spacing: 4) {
+                                Image(systemName: tab.icon)
+                                    .font(.system(size: 22, weight: selectedTab == tab.index ? .semibold : .regular))
+                                    .frame(height: 24)
+                                Text(tab.title)
+                                    .font(AnixartFont.small)
+                            }
+                            .foregroundColor(selectedTab == tab.index ? AnixartColor.accent : AnixartColor.textSecondary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 8)
+                        }
+                    }
                 }
-                .tag(2)
-
-            SearchView()
-                .tabItem {
-                    Label("Поиск", systemImage: selectedTab == 3 ? "magnifyingglass.circle.fill" : "magnifyingglass.circle")
-                }
-                .tag(3)
-
-            ProfileMenuView()
-                .tabItem {
-                    Label("Профиль", systemImage: selectedTab == 4 ? "person.fill" : "person")
-                }
-                .tag(4)
+                .background(AnixartColor.surface)
+            }
         }
-        .tint(.accentColor)
     }
 }
