@@ -46,15 +46,13 @@ actor APIClient {
     }
 
     private func encodeFormBody(_ body: Encodable) throws -> Data {
-        var components = URLComponents()
-        components.queryItems = []
-        if let dict = body as? FormEncodable {
-            for (key, value) in dict.formValues {
-                components.queryItems?.append(URLQueryItem(
-                    name: key, value: value.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)))
-            }
+        guard let dict = body as? FormEncodable else { return Data() }
+        var allowed = CharacterSet.urlQueryAllowed
+        allowed.remove(charactersIn: "&=")
+        let items = dict.formValues.map { key, value in
+            "\(key.addingPercentEncoding(withAllowedCharacters: allowed) ?? key)=\(value.addingPercentEncoding(withAllowedCharacters: allowed) ?? value)"
         }
-        return components.query?.data(using: .utf8) ?? Data()
+        return items.joined(separator: "&").data(using: .utf8) ?? Data()
     }
 
     func configure(
