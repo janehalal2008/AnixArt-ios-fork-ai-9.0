@@ -158,11 +158,14 @@ actor APIClient {
 
         var request = URLRequest(url: url)
         request.httpMethod = method
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
 
         if let body {
-            request.httpBody = try JSONEncoder().encode(body)
+            let formBody = try encodeFormBody(body)
+            request.httpBody = formBody
+            request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+        } else {
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         }
 
         let (data, response) = try await session.data(for: request)

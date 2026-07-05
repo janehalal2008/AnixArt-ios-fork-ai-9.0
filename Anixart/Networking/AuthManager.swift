@@ -76,20 +76,42 @@ class AuthManager: ObservableObject {
         isLoading = true
         error = nil
         do {
-            let response: VerifyResponse = try await api.request("auth/verify", method: "POST",
+            let data = try await api.requestData("auth/verify", method: "POST",
                 body: JSONObject(dictionary: ["code": code]))
-            if let token = response.profileToken?.token {
-                saveSession(token: token, profile: response.profileToken?.profile)
-            } else if response.code == 0 {
-                error = "Ошибка: неверный код"
-            } else {
-                error = response.message ?? "Ошибка верификации"
+            print("[verify] raw: \(String(data: data, encoding: .utf8) ?? "nil")")
+
+            if let token = try? JSONDecoder().decode(VerifyTokenResponse.self, from: data) {
+                if let t = token.token {
+                    saveSession(token: t, profile: nil)
+                    isLoading = false; return
+                }
             }
+            if let err = try? JSONDecoder().decode(VerifyErrorResponse.self, from: data) {
+                error = err.message ?? (err.error ?? "Ошибка верификации")
+                isLoading = false; return
+            }
+            if let legacy = try? JSONDecoder().decode(VerifyResponse.self, from: data) {
+                if let t = legacy.profileToken?.token ?? legacy.token {
+                    saveSession(token: t, profile: legacy.profileToken?.profile)
+                    isLoading = false; return
+                }
+                error = legacy.message ?? "Ошибка верификации"
+                isLoading = false; return
+            }
+            error = "Неизвестный формат ответа"
         } catch {
             self.error = error.localizedDescription
         }
         isLoading = false
     }
+
+struct VerifyTokenResponse: Codable {
+    let token: String?
+}
+struct VerifyErrorResponse: Codable {
+    let message: String?
+    let error: String?
+}
 
     func signInWithGoogle(presenting viewController: UIViewController) async {
         isLoading = true
