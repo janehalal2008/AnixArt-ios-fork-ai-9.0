@@ -49,17 +49,21 @@ jobs:
             sleep 15
           done
 
-      - run: >
-          xcodebuild build
-          -project Anixart.xcodeproj
-          -scheme Anixart
-          -configuration Debug
-          -sdk iphonesimulator
-          -destination 'platform=iOS Simulator,name=iPhone 16 Pro Max,OS=latest'
-          CODE_SIGNING_ALLOWED=NO
-          CONFIGURATION_BUILD_DIR=$PWD/build/sim
-          -clonedSourcePackagesDirPath ~/Library/Caches/com.apple.dt.Xcode/SourcePackages
-          | xcbeautify --report junit --report-path build/report.xml
+      - run: |
+          mkdir -p build/sim
+          xcodebuild build \
+            -project Anixart.xcodeproj \
+            -scheme Anixart \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'platform=iOS Simulator,name=iPhone 16 Pro Max,OS=latest' \
+            CODE_SIGNING_ALLOWED=NO \
+            CONFIGURATION_BUILD_DIR=$PWD/build/sim \
+            -clonedSourcePackagesDirPath ~/Library/Caches/com.apple.dt.Xcode/SourcePackages \
+            | xcbeautify --report junit --report-path build/report.xml
+          echo "=== Build output ==="
+          ls -la build/sim || true
+          find build/sim -name "*.app" -type d || true
 
       - uses: actions/upload-artifact@v4
         if: success()
