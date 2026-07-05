@@ -78,27 +78,22 @@ class AuthManager: ObservableObject {
         do {
             let data = try await api.requestData("auth/verify", method: "POST",
                 body: JSONObject(dictionary: ["code": code]))
-            print("[verify] raw: \(String(data: data, encoding: .utf8) ?? "nil")")
+            let raw = String(data: data, encoding: .utf8) ?? "nil"
+            print("[verify] raw: \(raw)")
 
-            if let token = try? JSONDecoder().decode(VerifyTokenResponse.self, from: data) {
-                if let t = token.token {
-                    saveSession(token: t, profile: nil)
+            if let rawData = data as? Data {
+                if let json = try? JSONSerialization.jsonObject(with: rawData) as? [String: Any] {
+                    if let t = json["token"] as? String {
+                        saveSession(token: t, profile: nil); isLoading = false; return
+                    }
+                    if let pt = json["profileToken"] as? [String: Any], let t = pt["token"] as? String {
+                        saveSession(token: t, profile: nil); isLoading = false; return
+                    }
+                    error = "API: \(json)"
                     isLoading = false; return
                 }
             }
-            if let err = try? JSONDecoder().decode(VerifyErrorResponse.self, from: data) {
-                error = err.message ?? (err.error ?? "Ошибка верификации")
-                isLoading = false; return
-            }
-            if let legacy = try? JSONDecoder().decode(VerifyResponse.self, from: data) {
-                if let t = legacy.profileToken?.token ?? legacy.token {
-                    saveSession(token: t, profile: legacy.profileToken?.profile)
-                    isLoading = false; return
-                }
-                error = legacy.message ?? "Ошибка верификации"
-                isLoading = false; return
-            }
-            error = "Неизвестный формат ответа"
+            error = "Неизвестный формат ответа: \(raw.prefix(200))"
         } catch {
             self.error = error.localizedDescription
         }
