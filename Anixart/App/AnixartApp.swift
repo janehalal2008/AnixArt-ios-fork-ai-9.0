@@ -12,7 +12,7 @@ struct AnixartApp: App {
                 .preferredColorScheme(authManager.isDarkMode ? .dark : nil)
                 .task {
                     try? await Task.sleep(nanoseconds: 500_000_000)
-                    await DDoSSolver.shared.initialize()
+                    try? await DDoSSolver.shared.initialize()
                 }
         }
     }
