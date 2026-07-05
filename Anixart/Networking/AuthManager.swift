@@ -76,12 +76,12 @@ class AuthManager: ObservableObject {
         isLoading = true
         error = nil
         do {
-            let body = ["code": code]
-            let data = try await api.requestData("auth/verify", method: "POST",
-                body: JSONObject(dictionary: body))
-            let response = try JSONDecoder().decode(VerifyResponse.self, from: data)
-            if let token = response.token {
-                saveSession(token: token, profile: nil)
+            let response: VerifyResponse = try await api.request("auth/verify", method: "POST",
+                body: JSONObject(dictionary: ["code": code]))
+            if let token = response.profileToken?.token {
+                saveSession(token: token, profile: response.profileToken?.profile)
+            } else if response.code == 0 {
+                error = "Ошибка: неверный код"
             } else {
                 error = response.message ?? "Ошибка верификации"
             }
@@ -104,11 +104,8 @@ class AuthManager: ObservableObject {
             let credential = GoogleAuthProvider.credential(withIDToken: idToken, accessToken: result.user.accessToken.tokenString)
             let authResult = try await Auth.auth().signIn(with: credential)
             let firebaseToken = try await authResult.user.getIDToken()
-
-            let body = ["firebaseToken": firebaseToken]
-            let data = try await api.requestData("auth/google", method: "POST",
-                body: JSONObject(dictionary: body))
-            let response = try JSONDecoder().decode(GoogleResponse.self, from: data)
+            let response: GoogleResponse = try await api.request("auth/google", method: "POST",
+                body: JSONObject(dictionary: ["firebaseToken": firebaseToken]))
             if let token = response.profileToken?.token {
                 saveSession(token: token, profile: response.profileToken?.profile)
             } else {
@@ -135,11 +132,9 @@ class AuthManager: ObservableObject {
         isLoading = true
         error = nil
         do {
-            let body = ["login": login]
-            let data = try await api.requestData("auth/restore", method: "POST",
-                body: JSONObject(dictionary: body))
-            let response = try JSONDecoder().decode(VerifyResponse.self, from: data)
-            error = response.message
+            let response: RestoreResponse = try await api.request("auth/restore", method: "POST",
+                body: JSONObject(dictionary: ["login": login]))
+            error = response.message ?? "Код восстановления отправлен на email (код \(response.code ?? -1))"
         } catch {
             self.error = error.localizedDescription
         }
