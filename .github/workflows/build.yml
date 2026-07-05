@@ -63,6 +63,31 @@ jobs:
           path: build/
           retention-days: 3
 
+      - name: Run Simulator screenshot
+        run: |
+          set -e
+          SIMULATOR_ID=$(xcrun simctl list devices available | grep "iPhone 16 Pro Max" | head -1 | grep -oE '[0-9A-F]{8}-([0-9A-F]{4}-){3}[0-9A-F]{12}')
+          echo "Simulator ID: $SIMULATOR_ID"
+          xcrun simctl boot "$SIMULATOR_ID"
+          sleep 15
+          APP_PATH=$(find build -name "Anixart.app" -type d | head -1)
+          echo "App path: $APP_PATH"
+          xcrun simctl install "$SIMULATOR_ID" "$APP_PATH"
+          xcrun simctl launch "$SIMULATOR_ID" com.swiftsoft.anixartd
+          sleep 10
+          mkdir -p screenshots
+          xcrun simctl io "$SIMULATOR_ID" screenshot screenshots/auth.png
+          sleep 3
+          xcrun simctl io "$SIMULATOR_ID" screenshot screenshots/auth2.png
+          echo "Screenshots done"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Anixart-Screenshots
+          path: screenshots/
+          retention-days: 3
+
   build-ipa:
     name: Build IPA (unsigned)
     runs-on: macos-15
