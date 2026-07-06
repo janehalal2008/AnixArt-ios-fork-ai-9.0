@@ -56,6 +56,7 @@ jobs:
           xcrun simctl list devices available
 
       - run: |
+          set -o pipefail
           mkdir -p build/sim
           xcodebuild build \
             -project Anixart.xcodeproj \
@@ -94,6 +95,13 @@ jobs:
           xcrun simctl io "$SIMULATOR_ID" screenshot screenshots/auth.png
           sleep 3
           xcrun simctl io "$SIMULATOR_ID" screenshot screenshots/auth2.png
+
+          echo "=== Open Debug via launch args ==="
+          xcrun simctl terminate "$SIMULATOR_ID" com.swiftsoft.anixartd || true
+          sleep 2
+          xcrun simctl launch "$SIMULATOR_ID" com.swiftsoft.anixartd --args -debug
+          sleep 8
+          xcrun simctl io "$SIMULATOR_ID" screenshot screenshots/debug.png
           echo "Screenshots done"
 
       - uses: actions/upload-artifact@v4
