@@ -120,8 +120,9 @@ struct DebugView: View {
 
     private func allLogsText() -> String {
         logger.entries.map { entry in
-            """
-            [\(entry.timestamp, style: .time)] \(entry.method) \(entry.url)
+            let time = entry.timestamp.formatted(date: .omitted, time: .shortened)
+            return """
+            [\(time)] \(entry.method) \(entry.url)
             Status: \(statusText(entry.status))
             Body: \(entry.body)
             Response: \(entry.response)
